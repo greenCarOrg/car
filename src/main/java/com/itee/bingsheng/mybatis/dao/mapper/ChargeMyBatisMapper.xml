@@ -1,0 +1,5369 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+		PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+		"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.itee.bingsheng.mybatis.dao.ChargeMyBatisDao" >
+
+
+
+
+	<!-- 查询营收总数 (按支付渠道) -->
+	<select id="getChargeGroupByPayTypeToCount" parameterType="Object" resultType="java.lang.Double">
+		SELECT
+		SUM(cr.money)
+		FROM
+		charge_record cr,student s
+		WHERE cr.type = 1 and cr.account_type != 2
+		AND cr.student_id = s.student_id
+		<if test="schoolId != null and schoolId != ''">
+			AND  s.school_id = #{schoolId}
+		</if>
+		<if test="studentName != null and studentName != ''">
+			AND  s.STUDENT_NAME LIKE CONCAT('%','${studentName}','%')
+		</if>
+		AND cr.create_date BETWEEN #{startDate}  AND DATE_ADD(#{endDate},INTERVAL 1 DAY)
+	</select>
+
+
+	<!-- 查询营收  充值 或者退费 总数 (按学生年级) -->
+	<select id="getChargeGroupByGradeToCount" parameterType="Object" resultType="java.lang.Double">
+		SELECT
+		SUM(cr.money) rationum
+		FROM
+		charge_record cr,
+		student s,
+		study_grade sg,
+		study_section ss
+		WHERE  cr.account_type != 2
+		AND cr.student_id = s.student_id
+		AND s.grade = sg.grade_id
+		AND sg.section_id = ss.section_id
+		<choose>
+			<when test="type != null and type != ''">
+				AND cr.type = #{type}
+			</when>
+			<otherwise>
+				AND cr.type in(1,2)
+			</otherwise>
+		</choose>
+		<if test="schoolId != null and schoolId != ''">
+			AND  s.school_id = #{schoolId}
+		</if>
+		<if test="studentName != null and studentName != ''">
+			AND  s.STUDENT_NAME LIKE CONCAT('%','${studentName}','%')
+		</if>
+		AND cr.create_date BETWEEN #{startDate}  AND DATE_ADD(#{endDate},INTERVAL 1 DAY)
+	</select>
+
+
+	<!-- 查询营业流水 -->
+	<select id="pagedStudentRechargeAndRefund" parameterType="Object" resultType="java.util.HashMap">
+		SELECT
+		date_format(cr.create_date,'%Y-%m-%d %H:%i') createDate,
+		cr.charge_id chargeId,
+		cr.student_id studentId,
+		s.STUDENT_NAME studentName,
+		s.STUDENT_CODE studentCode,
+		cr.money money,
+		cast(cr.type as signed) as type,
+		case
+		when cr.type=1 and cr.account_type=1 then '充值（ERP账户）'
+		when cr.type=1 and cr.account_type=3 then '充值（教材费账户）'
+		when cr.type=1 and cr.account_type=4 then '充值（生活费账户）'
+		when cr.type=1 and cr.account_type=5 then '充值（教具费账户）'
+		when cr.type=1 and cr.account_type=6 then '充值（其他费用账户）'
+		when cr.type=2 then '退费'
+		when cr.type=0 then '退费营收'
+		when cr.type=12 then '转校充值'
+		when cr.type=13 then '转校退费'
+		when cr.type=15 then  '预报名订金'
+		when cr.type=16 then '经纪人介绍费'
+		end doType,
+		cr.input_name inputName,
+		cr.remark remark,
+		case cr.pay_type when 1 THEN '现金支付' WHEN 2 THEN '微信支付' WHEN 3 then '支付宝支付'
+		when 5 then '刷卡支付' else '其他' END payType,
+		case
+		when cr.charge_type=1 then '续费'
+		when cr.charge_type=2 then '--'
+		ELSE '新签' end chargeType
+		FROM
+		charge_record cr LEFT JOIN student s on cr.student_id = s.student_id
+		WHERE  date_format(cr.create_date,'%Y-%m-%d') BETWEEN #{startDate}  AND #{endDate}
+		AND  s.school_id = #{schoolId} AND  cr.charge_type  IN (1,0,2) AND cr.charge_state IN (0,3) AND cr.type  IN (1,2,0,12,13,15,16) and cr.account_type!=2
+		<if test="studentCode != null and studentCode != ''">
+			AND  s.STUDENT_CODE LIKE CONCAT('%','${studentCode}','%')
+		</if>
+		<if test="doType != null and doType != ''">
+			AND  cr.type = #{doType}
+		</if>
+		<if test="studentName != null and studentName != ''">
+			AND  s.STUDENT_NAME LIKE CONCAT('%','${studentName}','%')
+		</if>
+		<if test="chargeType != null and chargeType != ''">
+			AND  cr.charge_type = #{chargeType}
+		</if>
+
+		ORDER  BY  cr.create_date DESC
+		<if test="pager != null and pager.mysqlQueryCondition != null and pager.mysqlQueryCondition != ''">
+			${pager.mysqlQueryCondition}
+		</if>
+	</select>
+
+	<!-- 查询营业流水 总数-->
+	<select id="getStudentRechargeAndRefundCount" parameterType="Object" resultType="java.lang.Long">
+		SELECT
+		COUNT(cr.student_id)
+		FROM
+		charge_record cr left JOIN student s on cr.student_id = s.student_id
+		WHERE  date_format(cr.create_date,'%Y-%m-%d') BETWEEN #{startDate}  AND DATE_ADD(#{endDate},INTERVAL 1 DAY)
+		AND  s.school_id = #{schoolId} AND  cr.charge_type  IN (1,0,2)  AND cr.charge_state  IN (0,3) AND cr.type  IN (1,2,0,10,12,13,15,16) AND cr.account_type!=2
+		<if test="studentCode != null and studentCode != ''">
+			AND  s.STUDENT_CODE LIKE CONCAT('%','${studentCode}','%')
+		</if>
+		<if test="doType != null and doType != ''">
+			AND  cr.type = #{doType}
+		</if>
+		<if test="studentName != null and studentName != ''">
+			AND  s.STUDENT_NAME LIKE CONCAT('%','${studentName}','%')
+		</if>
+		<if test="chargeType != null and chargeType != ''">
+			AND  cr.charge_type = #{chargeType}
+		</if>
+
+	</select>
+
+	<!--grid：营业收入-营收按校区-list-->
+	<select id="pageBusinessIncomeBySchool" parameterType="Object" resultType="java.util.HashMap">
+		SELECT
+		t.school_id,
+		t.school_name,
+		0 as money,
+		Format(t.recharge_income,2) as recharge_income,
+		Format(t.other_income,2) as other_income,
+		Format(t.returns_pay,2) as returns_pay,
+		Format(t.other_pay,2) as other_pay,
+		Format(t.business_income,2) as business_income,
+		concat(ROUND(ifnull((t.business_income/(t.recharge_income+t.other_income)),0)*100,0),'%') as business_scale
+		from(
+		SELECT
+		sc.school_id,
+		sc.school_name,
+		ifnull(cr1.recharge_income,0) as recharge_income,
+		ifnull(cr2.other_income,0) as other_income,
+		ifnull(cr3.returns_pay,0) as returns_pay,
+		ifnull((cr4.other_pay+cr5.other_pay2),0) as other_pay,
+		ifnull((ifnull(cr1.recharge_income,0)+ifnull(cr2.other_income,0)-ifnull(cr3.returns_pay,0)-ifnull(cr4.other_pay,0)-ifnull(cr5.other_pay2,0)),0) as business_income
+		FROM
+		school sc
+		LEFT JOIN
+		(SELECT
+		s.SCHOOL_ID,
+		ifnull(sum(cr.money),0) as recharge_income
+		from
+		charge_record cr
+		LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+		where
+		<if test="data.incomeType==null">
+			cr.type in(1,12)
+		</if>
+		<if test="data.incomeType!=null and data.incomeType.size() != 0">
+			cr.type in
+			<foreach collection="data.incomeType" index="index" item="item" separator="," open="(" close=")">
+				<if test="item== 0">
+					0
+				</if>
+				<if test="item== 1">
+					1
+				</if>
+				<if test="item== 12">
+					12
+				</if>
+			</foreach>
+		</if>
+		<if test="data.startDate != null and data.startDate != '' and data.endDate != null and data.endDate != ''">
+			AND cr.create_time BETWEEN #{data.startDate}  AND #{data.endDate}
+		</if>
+		<if test="data.schoolId != null and data.schoolId != ''">
+			and s.school_id in (${data.schoolId})
+		</if>
+		<if test="data.schoolIds != null and data.schoolIds.size()>0">
+			and s.SCHOOL_ID in
+			<foreach item="item" index="index" collection="data.schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY s.SCHOOL_ID) as cr1 on sc.school_id=cr1.SCHOOL_ID
+		LEFT JOIN
+		(SELECT
+		s.SCHOOL_ID,
+		ifnull(sum(cr.money),0) as other_income
+		from
+		charge_record cr
+		LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+		where
+		<if test="data.incomeType==null">
+			cr.type in(9,10,14)
+		</if>
+		<if test="data.incomeType!=null and data.incomeType.size() != 0">
+			cr.type in
+			<foreach collection="data.incomeType" index="index" item="item" separator="," open="(" close=")">
+				<if test="item== 0">
+					0
+				</if>
+				<if test="item== 9">
+					9
+				</if>
+				<if test="item== 10">
+					10
+				</if>
+				<if test="item== 14">
+					14
+				</if>
+			</foreach>
+		</if>
+		and cr.money>0
+		<if test="data.startDate != null and data.startDate != '' and data.endDate != null and data.endDate != ''">
+			AND cr.create_time BETWEEN #{data.startDate}  AND #{data.endDate}
+		</if>
+		<if test="data.schoolId != null and data.schoolId != ''">
+			and s.school_id in (${data.schoolId})
+		</if>
+		<if test="data.schoolIds != null and data.schoolIds.size()>0">
+			and s.SCHOOL_ID in
+			<foreach item="item" index="index" collection="data.schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY s.SCHOOL_ID) as cr2 on sc.school_id=cr2.SCHOOL_ID
+		LEFT JOIN
+		(SELECT
+		s.SCHOOL_ID,
+		ifnull(abs(sum(cr.money)),0) as returns_pay
+		from
+		charge_record cr
+		LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+		where 1=1
+		<if test="data.payType==null">
+			and cr.type in(2,13)
+		</if>
+		<if test="data.payType!=null and data.payType.size() != 0">
+			and cr.type in
+			<foreach collection="data.payType" index="index" item="item" separator="," open="(" close=")">
+				<if test="item== 0">
+					0
+				</if>
+				<if test="item== 2">
+					2
+				</if>
+				<if test="item== 13">
+					13
+				</if>
+			</foreach>
+		</if>
+		<if test="data.startDate != null and data.startDate != '' and data.endDate != null and data.endDate != ''">
+			AND cr.create_time BETWEEN #{data.startDate}  AND #{data.endDate}
+		</if>
+		<if test="data.schoolId != null and data.schoolId != ''">
+			and s.school_id in (${data.schoolId})
+		</if>
+		<if test="data.schoolIds != null and data.schoolIds.size()>0">
+			and s.SCHOOL_ID in
+			<foreach item="item" index="index" collection="data.schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY s.SCHOOL_ID) as cr3 on sc.school_id=cr3.SCHOOL_ID
+		LEFT JOIN
+		(SELECT
+		s.SCHOOL_ID,
+		ifnull(sum(cr.money),0) as other_pay
+		from
+		charge_record cr
+		LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+		where
+		<if test="data.payType==null">
+			cr.type =16
+		</if>
+		<if test="data.payType!=null and data.payType.size() != 0">
+			cr.type in
+			<foreach collection="data.payType" index="index" item="item" separator="," open="(" close=")">
+				<if test="item== 0">
+					0
+				</if>
+				<if test="item== 16">
+					16
+				</if>
+			</foreach>
+		</if>
+		<if test="data.startDate != null and data.startDate != '' and data.endDate != null and data.endDate != ''">
+			AND cr.create_time BETWEEN #{data.startDate}  AND #{data.endDate}
+		</if>
+		<if test="data.schoolId != null and data.schoolId != ''">
+			and s.school_id in (${data.schoolId})
+		</if>
+		<if test="data.schoolIds != null and data.schoolIds.size()>0">
+			and s.SCHOOL_ID in
+			<foreach item="item" index="index" collection="data.schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY s.SCHOOL_ID) as cr4 on sc.school_id=cr4.SCHOOL_ID
+		LEFT JOIN
+		(SELECT
+		s.SCHOOL_ID,
+		ifnull(abs(sum(cr.money)),0) as other_pay2
+		from
+		charge_record cr
+		LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+		where cr.money &lt; 0
+		<if test="data.payType==null">
+			and cr.type =14
+		</if>
+		<if test="data.payType!=null and data.payType.size() != 0">
+			and cr.type in
+			<foreach collection="data.payType" index="index" item="item" separator="," open="(" close=")">
+				<if test="item== 0">
+					0
+				</if>
+				<if test="item== 14">
+					14
+				</if>
+			</foreach>
+		</if>
+		<if test="data.startDate != null and data.startDate != '' and data.endDate != null and data.endDate != ''">
+			AND cr.create_time BETWEEN #{data.startDate}  AND #{data.endDate}
+		</if>
+		GROUP BY s.SCHOOL_ID) as cr5 on sc.school_id=cr5.SCHOOL_ID
+		where 1=1
+		<if test="data.schoolId != null and data.schoolId != ''">
+			and sc.school_id in (${data.schoolId})
+		</if>
+		<if test="data.schoolIds != null and data.schoolIds.size()>0">
+			and sc.school_id in
+			<foreach item="item" index="index" collection="data.schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="sort!= null and sort != '' and sort.size != 0">
+			order by
+			${sort[0].field} ${sort[0].dir},
+		</if>
+		) t
+		order by t.business_income desc
+		<if test="page != null and pageSize != null and pageSize != ''">
+			LIMIT #{page},#{pageSize}
+		</if>
+	</select>
+	<!--营收按校区-count-->
+	<select id="pageBusinessIncomeBySchoolCount" parameterType="Object" resultType="int">
+		SELECT
+		count(1)
+		FROM
+		school sc
+		LEFT JOIN
+		(SELECT
+		s.SCHOOL_ID,
+		ifnull(sum(cr.money),0) as recharge_income
+		from
+		charge_record cr
+		LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+		where
+		<if test="data.incomeType==null">
+			cr.type in(1,12)
+		</if>
+		<if test="data.incomeType!=null and data.incomeType.size() != 0">
+			cr.type in
+			<foreach collection="data.incomeType" index="index" item="item" separator="," open="(" close=")">
+				<if test="item== 0">
+					0
+				</if>
+				<if test="item== 1">
+					1
+				</if>
+				<if test="item== 12">
+					12
+				</if>
+			</foreach>
+		</if>
+		<if test="data.startDate != null and data.startDate != '' and data.endDate != null and data.endDate != ''">
+			AND DATE_FORMAT(cr.create_time ,'%Y-%m-%d') BETWEEN #{data.startDate}  AND #{data.endDate}
+		</if>
+		<if test="data.schoolId != null and data.schoolId != ''">
+			and s.school_id in (${data.schoolId})
+		</if>
+		<if test="data.schoolIds != null and data.schoolIds.size()>0">
+			and s.SCHOOL_ID in
+			<foreach item="item" index="index" collection="data.schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY s.SCHOOL_ID) as cr1 on sc.school_id=cr1.SCHOOL_ID
+		LEFT JOIN
+		(SELECT
+		s.SCHOOL_ID,
+		ifnull(sum(cr.money),0) as other_income
+		from
+		charge_record cr
+		LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+		where cr.money>0
+		<if test="data.incomeType==null">
+			and cr.type in(9,10,14)
+		</if>
+		<if test="data.incomeType!=null and data.incomeType.size() != 0">
+			and cr.type in
+			<foreach collection="data.incomeType" index="index" item="item" separator="," open="(" close=")">
+				<if test="item== 0">
+					0
+				</if>
+				<if test="item== 9">
+					9
+				</if>
+				<if test="item== 10">
+					10
+				</if>
+				<if test="item== 14">
+					14
+				</if>
+			</foreach>
+		</if>
+		<if test="data.startDate != null and data.startDate != '' and data.endDate != null and data.endDate != ''">
+			AND DATE_FORMAT(cr.create_time ,'%Y-%m-%d') BETWEEN #{data.startDate}  AND #{data.endDate}
+		</if>
+		<if test="data.schoolId != null and data.schoolId != ''">
+			and s.school_id in (${data.schoolId})
+		</if>
+		<if test="data.schoolIds != null and data.schoolIds.size()>0">
+			and s.SCHOOL_ID in
+			<foreach item="item" index="index" collection="data.schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY s.SCHOOL_ID) as cr2 on sc.school_id=cr2.SCHOOL_ID
+		LEFT JOIN
+		(SELECT
+		s.SCHOOL_ID,
+		ifnull(sum(cr.money),0) as returns_pay
+		from
+		charge_record cr
+		LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+		where 1=1
+		<if test="data.payType==null">
+			and cr.type in(2,13)
+		</if>
+		<if test="data.payType!=null and data.payType.size() != 0">
+			and cr.type in
+			<foreach collection="data.payType" index="index" item="item" separator="," open="(" close=")">
+				<if test="item== 0">
+					0
+				</if>
+				<if test="item== 2">
+					2
+				</if>
+				<if test="item== 13">
+					13
+				</if>
+			</foreach>
+		</if>
+		<if test="data.startDate != null and data.startDate != '' and data.endDate != null and data.endDate != ''">
+			AND DATE_FORMAT(cr.create_time ,'%Y-%m-%d') BETWEEN #{data.startDate}  AND #{data.endDate}
+		</if>
+		<if test="data.schoolId != null and data.schoolId != ''">
+			and s.school_id in (${data.schoolId})
+		</if>
+		<if test="data.schoolIds != null and data.schoolIds.size()>0">
+			and s.SCHOOL_ID in
+			<foreach item="item" index="index" collection="data.schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY s.SCHOOL_ID) as cr3 on sc.school_id=cr3.SCHOOL_ID
+		LEFT JOIN
+		(SELECT
+		s.SCHOOL_ID,
+		ifnull(sum(cr.money),0) as other_pay
+		from
+		charge_record cr
+		LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+		where
+		<if test="data.payType==null">
+			cr.type =16
+		</if>
+		<if test="data.payType!=null and data.payType.size() != 0">
+			cr.type in
+			<foreach collection="data.payType" index="index" item="item" separator="," open="(" close=")">
+				<if test="item== 0">
+					0
+				</if>
+				<if test="item== 16">
+					16
+				</if>
+			</foreach>
+		</if>
+		<if test="data.startDate != null and data.startDate != '' and data.endDate != null and data.endDate != ''">
+			AND DATE_FORMAT(cr.create_time ,'%Y-%m-%d') BETWEEN #{data.startDate}  AND #{data.endDate}
+		</if>
+		<if test="data.schoolId != null and data.schoolId != ''">
+			and s.school_id in (${data.schoolId})
+		</if>
+		<if test="data.schoolIds != null and data.schoolIds.size()>0">
+			and s.SCHOOL_ID in
+			<foreach item="item" index="index" collection="data.schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY s.SCHOOL_ID) as cr4 on sc.school_id=cr4.SCHOOL_ID
+		LEFT JOIN
+		(SELECT
+		s.SCHOOL_ID,
+		ifnull(abs(sum(cr.money)),0) as other_pay2
+		from
+		charge_record cr
+		LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+		where cr.money &lt; 0
+		<if test="data.payType==null">
+			and cr.type =14
+		</if>
+		<if test="data.payType!=null and data.payType.size() != 0">
+			and cr.type in
+			<foreach collection="data.payType" index="index" item="item" separator="," open="(" close=")">
+				<if test="item== 0">
+					0
+				</if>
+				<if test="item== 14">
+					14
+				</if>
+			</foreach>
+		</if>
+		<if test="data.startDate != null and data.startDate != '' and data.endDate != null and data.endDate != ''">
+			AND DATE_FORMAT(cr.create_time ,'%Y-%m-%d') BETWEEN #{data.startDate}  AND #{data.endDate}
+		</if>
+		<if test="data.schoolId != null and data.schoolId != ''">
+			and s.school_id in (${data.schoolId})
+		</if>
+		<if test="data.schoolIds != null and data.schoolIds.size()>0">
+			and s.SCHOOL_ID in
+			<foreach item="item" index="index" collection="data.schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY s.SCHOOL_ID) as cr5 on sc.school_id=cr5.SCHOOL_ID
+		where 1=1
+		<if test="data.schoolIds != null and data.schoolIds.size()>0">
+			and sc.SCHOOL_ID in
+			<foreach item="item" index="index" collection="data.schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="data.schoolId != null and data.schoolId != ''">
+			and sc.school_id in (${data.schoolId})
+		</if>
+	</select>
+	<!--0.export：营业收入-营收按校区-->
+	<select id="exportBusinessIncomeBySchool" parameterType="Object" resultType="java.util.HashMap">
+		SELECT
+			t.school_name,
+			Format(t.recharge_income,2) as recharge_income,
+			Format(t.other_income,2) as other_income,
+			Format(t.returns_pay,2) as returns_pay,
+			Format(t.other_pay,2) as other_pay,
+			Format(t.business_income,2) as business_income,
+			concat(ROUND(ifnull((t.business_income/${totalMoney}),0)*100,2),'%') as business_scale
+		from(
+		SELECT
+			sc.school_id,
+			sc.school_name,
+			ifnull(cr1.recharge_income,0) as recharge_income,
+			ifnull(cr2.other_income,0) as other_income,
+			ifnull(cr3.returns_pay,0) as returns_pay,
+			ifnull((cr4.other_pay+cr5.other_pay2),0) as other_pay,
+			ifnull((ifnull(cr1.recharge_income,0)+ifnull(cr2.other_income,0)-ifnull(cr3.returns_pay,0)-ifnull(cr4.other_pay,0)-ifnull(cr5.other_pay2,0)),0) as business_income
+		FROM
+		school sc
+		LEFT JOIN
+		(SELECT
+		s.SCHOOL_ID,
+		ifnull(sum(cr.money),0) as recharge_income
+		from
+		charge_record cr
+		LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+		where
+		<if test="incomeType==null">
+			cr.type in(1,12)
+		</if>
+		<if test="incomeType!=null and incomeType.size() != 0">
+			cr.type in
+			<foreach collection="incomeType" index="index" item="item" separator="," open="(" close=")">
+				<if test="item== 0">
+					0
+				</if>
+				<if test="item== 1">
+					1
+				</if>
+				<if test="item== 12">
+					12
+				</if>
+			</foreach>
+		</if>
+		<if test="startDate != null and startDate != '' and endDate != null and endDate != ''">
+			AND DATE_FORMAT(cr.create_time ,'%Y-%m-%d') BETWEEN #{startDate}  AND #{endDate}
+		</if>
+		<if test="schoolId != null and schoolId != ''">
+			and s.school_id in (${schoolId})
+		</if>
+		<if test="schoolIds != null and schoolIds.size()>0">
+			and s.SCHOOL_ID in
+			<foreach item="item" index="index" collection="schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY s.SCHOOL_ID) as cr1 on sc.school_id=cr1.SCHOOL_ID
+		LEFT JOIN
+		(SELECT
+		s.SCHOOL_ID,
+		ifnull(sum(cr.money),0) as other_income
+		from
+		charge_record cr
+		LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+		where
+		<if test="incomeType==null">
+			cr.type in(9,10,14)
+		</if>
+		<if test="incomeType!=null and incomeType.size() != 0">
+			cr.type in
+			<foreach collection="incomeType" index="index" item="item" separator="," open="(" close=")">
+				<if test="item== 0">
+					0
+				</if>
+				<if test="item== 9">
+					9
+				</if>
+				<if test="item== 10">
+					10
+				</if>
+				<if test="item== 14">
+					14
+				</if>
+			</foreach>
+		</if>
+		and cr.money>0
+		<if test="startDate != null and startDate != '' and endDate != null and endDate != ''">
+			AND DATE_FORMAT(cr.create_time ,'%Y-%m-%d') BETWEEN #{startDate}  AND #{endDate}
+		</if>
+		<if test="schoolId != null and schoolId != ''">
+			and s.school_id in (${schoolId})
+		</if>
+		<if test="schoolIds != null and schoolIds.size()>0">
+			and s.SCHOOL_ID in
+			<foreach item="item" index="index" collection="schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY s.SCHOOL_ID) as cr2 on sc.school_id=cr2.SCHOOL_ID
+		LEFT JOIN
+		(SELECT
+		s.SCHOOL_ID,
+		abs(ifnull(sum(cr.money),0)) as returns_pay
+		from
+		charge_record cr
+		LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+		where 1=1
+		<if test="payType==null">
+			and cr.type in(2,13)
+		</if>
+		<if test="payType!=null and payType.size() != 0">
+			and cr.type in
+			<foreach collection="payType" index="index" item="item" separator="," open="(" close=")">
+				<if test="item== 0">
+					0
+				</if>
+				<if test="item== 2">
+					2
+				</if>
+				<if test="item== 13">
+					13
+				</if>
+			</foreach>
+		</if>
+		<if test="startDate != null and startDate != '' and endDate != null and endDate != ''">
+			AND DATE_FORMAT(cr.create_time ,'%Y-%m-%d') BETWEEN #{startDate}  AND #{endDate}
+		</if>
+		<if test="schoolId != null and schoolId != ''">
+			and s.school_id in (${schoolId})
+		</if>
+		<if test="schoolIds != null and schoolIds.size()>0">
+			and s.SCHOOL_ID in
+			<foreach item="item" index="index" collection="schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY s.SCHOOL_ID) as cr3 on sc.school_id=cr3.SCHOOL_ID
+		LEFT JOIN
+		(SELECT
+		s.SCHOOL_ID,
+		abs(ifnull(sum(cr.money),0)) as other_pay
+		from
+		charge_record cr
+		LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+		where
+		<if test="payType==null">
+			cr.type =16
+		</if>
+		<if test="payType!=null and payType.size() != 0">
+			cr.type in
+			<foreach collection="payType" index="index" item="item" separator="," open="(" close=")">
+				<if test="item== 0">
+					0
+				</if>
+				<if test="item== 16">
+					16
+				</if>
+			</foreach>
+		</if>
+		<if test="startDate != null and startDate != '' and endDate != null and endDate != ''">
+			AND DATE_FORMAT(cr.create_time ,'%Y-%m-%d') BETWEEN #{startDate}  AND #{endDate}
+		</if>
+		<if test="schoolId != null and schoolId != ''">
+			and s.school_id in (${schoolId})
+		</if>
+		<if test="schoolIds != null and schoolIds.size()>0">
+			and s.SCHOOL_ID in
+			<foreach item="item" index="index" collection="schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY s.SCHOOL_ID) as cr4 on sc.school_id=cr4.SCHOOL_ID
+		LEFT JOIN
+		(SELECT
+		s.SCHOOL_ID,
+		ifnull(abs(sum(cr.money)),0) as other_pay2
+		from
+		charge_record cr
+		LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+		where cr.money &lt; 0
+		<if test="payType==null">
+			and cr.type =14
+		</if>
+		<if test="payType!=null and payType.size() != 0">
+			and cr.type in
+			<foreach collection="payType" index="index" item="item" separator="," open="(" close=")">
+				<if test="item== 0">
+					0
+				</if>
+				<if test="item== 14">
+					14
+				</if>
+			</foreach>
+		</if>
+		<if test="startDate != null and startDate != '' and endDate != null and endDate != ''">
+			AND DATE_FORMAT(cr.create_time ,'%Y-%m-%d') BETWEEN #{startDate}  AND #{endDate}
+		</if>
+		GROUP BY s.SCHOOL_ID) as cr5 on sc.school_id=cr5.SCHOOL_ID
+		<if test="schoolId != null and schoolId != ''">
+			where sc.school_id in (${schoolId})
+		</if>
+		<if test="schoolIds != null and schoolIds.size()>0">
+			and s.SCHOOL_ID in
+			<foreach item="item" index="index" collection="schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		) t
+		order by t.business_income desc
+	</select>
+	<!--1.grid：营业收入-营收按时间-list-->
+	<!--营收占比business_scale改为在service端处理并添加-->
+	<select id="pageBusinessIncomeByDate" parameterType="Object" resultType="java.util.HashMap">
+		SELECT
+			t.create_time,
+			0 as money,
+			Format(t.recharge_income,2) as recharge_income,
+			Format(t.other_income,2) as other_income,
+			Format(t.returns_pay,2) as returns_pay,
+			Format(t.other_pay,2) as other_pay,
+			Format(t.business_income,2) as business_income
+		from(
+			SELECT
+				DATE_FORMAT(cr1.create_time,#{data.dayMonth}) create_time,
+				ifnull(SUM(cr1.recharge_income),0) as recharge_income,
+				ifnull(SUM(cr2.other_income),0) as other_income,
+				ifnull(SUM(cr3.returns_pay),0) as returns_pay,
+				ifnull(SUM((cr4.other_pay+cr5.other_pay2)),0) as other_pay,
+				ifnull(SUM((ifnull(cr1.recharge_income,0)+ifnull(cr2.other_income,0)-ifnull(cr3.returns_pay,0)-ifnull(cr4.other_pay,0)-ifnull(cr5.other_pay2,0))),0) as business_income
+			FROM
+			(SELECT
+			DATE_FORMAT(cr.create_time,#{data.dayType}) as create_time,
+			ifnull(sum(cr.money),0) as recharge_income
+			from
+			charge_record cr
+			LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+			where cr.account_type=1
+			<if test="data.incomeType==null">
+				and cr.type in(1,12)
+			</if>
+			<if test="data.incomeType!=null and data.incomeType.size() != 0">
+				cr.type in
+				<foreach collection="data.incomeType" index="index" item="item" separator="," open="(" close=")">
+					<if test="item== 0">
+						0
+					</if>
+					<if test="item== 1">
+						1
+					</if>
+					<if test="item== 12">
+						12
+					</if>
+				</foreach>
+			</if>
+			<if test="data.schoolId != null and data.schoolId != ''">
+				and s.school_id in (${data.schoolId})
+			</if>
+			<if test="data.startDate != null and data.startDate != '' and data.endDate != null and data.endDate != ''">
+				AND DATE_FORMAT(cr.create_time ,#{data.dayType}) BETWEEN #{data.startDate}  AND #{data.endDate}
+			</if>
+			<if test="data.schoolIds != null and data.schoolIds.size()>0">
+				and s.SCHOOL_ID in
+				<foreach item="item" index="index" collection="data.schoolIds" open="(" separator="," close=")">
+					#{item}
+				</foreach>
+			</if>
+			GROUP BY DATE_FORMAT(cr.create_time,#{data.dayType})) as cr1
+			LEFT JOIN
+			(SELECT
+			DATE_FORMAT(cr.create_time,#{data.dayType}) as create_time,
+			ifnull(sum(cr.money),0) as other_income
+			from
+			charge_record cr
+			LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+			where cr.money>0
+			and cr.account_type=1
+			<if test="data.incomeType==null">
+				and cr.type in(9,10,14)
+			</if>
+			<if test="data.incomeType!=null and data.incomeType.size() != 0">
+				and cr.type in
+				<foreach collection="data.incomeType" index="index" item="item" separator="," open="(" close=")">
+					<if test="item== 0">
+						0
+					</if>
+					<if test="item== 9">
+						9
+					</if>
+					<if test="item== 10">
+						10
+					</if>
+					<if test="item== 14">
+						14
+					</if>
+				</foreach>
+			</if>
+			<if test="data.schoolId != null and data.schoolId != ''">
+				and s.school_id in (${data.schoolId})
+			</if>
+			<if test="data.startDate != null and data.startDate != '' and data.endDate != null and data.endDate != ''">
+				AND DATE_FORMAT(cr.create_time ,#{data.dayType}) BETWEEN #{data.startDate}  AND #{data.endDate}
+			</if>
+			<if test="data.schoolIds != null and data.schoolIds.size()>0">
+				and s.SCHOOL_ID in
+				<foreach item="item" index="index" collection="data.schoolIds" open="(" separator="," close=")">
+					#{item}
+				</foreach>
+			</if>
+			GROUP BY DATE_FORMAT(cr.create_time,#{data.dayType})) as cr2 on cr1.create_time=DATE_FORMAT(cr2.create_time,#{data.dayType})
+			LEFT JOIN
+			(SELECT
+			DATE_FORMAT(cr.create_time,#{data.dayType}) as create_time,
+			ifnull(abs(sum(cr.money)),0) as returns_pay
+			from
+			charge_record cr
+			LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+			where cr.money &lt;0
+			and cr.account_type=1
+			<if test="data.payType==null">
+				and cr.type in(2,13)
+			</if>
+			<if test="data.payType!=null and data.payType.size() != 0">
+				and cr.type in
+				<foreach collection="data.payType" index="index" item="item" separator="," open="(" close=")">
+					<if test="item== 0">
+						0
+					</if>
+					<if test="item== 2">
+						2
+					</if>
+					<if test="item== 13">
+						13
+					</if>
+				</foreach>
+			</if>
+			<if test="data.schoolId != null and data.schoolId != ''">
+				and s.school_id in (${data.schoolId})
+			</if>
+			<if test="data.startDate != null and data.startDate != '' and data.endDate != null and data.endDate != ''">
+				AND DATE_FORMAT(cr.create_time ,#{data.dayType}) BETWEEN #{data.startDate}  AND #{data.endDate}
+			</if>
+			<if test="data.schoolIds != null and data.schoolIds.size()>0">
+				and s.SCHOOL_ID in
+				<foreach item="item" index="index" collection="data.schoolIds" open="(" separator="," close=")">
+					#{item}
+				</foreach>
+			</if>
+			GROUP BY DATE_FORMAT(cr.create_time,#{data.dayType})) as cr3 on cr1.create_time=DATE_FORMAT(cr3.create_time,#{data.dayType})
+			LEFT JOIN
+			(SELECT
+			DATE_FORMAT(cr.create_time,#{data.dayType}) as create_time,
+			ifnull(sum(cr.money),0) as other_pay
+			from
+			charge_record cr
+			LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+			where cr.account_type=1
+			<if test="data.payType==null">
+				and cr.type =16
+			</if>
+			<if test="data.payType!=null and data.payType.size() != 0">
+				cr.type in
+				<foreach collection="data.payType" index="index" item="item" separator="," open="(" close=")">
+					<if test="item== 0">
+						0
+					</if>
+					<if test="item== 16">
+						16
+					</if>
+				</foreach>
+			</if>
+			<if test="data.schoolId != null and data.schoolId != ''">
+				and s.school_id in (${data.schoolId})
+			</if>
+			<if test="data.startDate != null and data.startDate != '' and data.endDate != null and data.endDate != ''">
+				AND DATE_FORMAT(cr.create_time ,#{data.dayType}) BETWEEN #{data.startDate}  AND #{data.endDate}
+			</if>
+			<if test="data.schoolIds != null and data.schoolIds.size()>0">
+				and s.SCHOOL_ID in
+				<foreach item="item" index="index" collection="data.schoolIds" open="(" separator="," close=")">
+					#{item}
+				</foreach>
+			</if>
+			GROUP BY DATE_FORMAT(cr.create_time,#{data.dayType})) as cr4 on cr1.create_time=DATE_FORMAT(cr4.create_time,#{data.dayType})
+			LEFT JOIN
+			(SELECT
+			DATE_FORMAT(cr.create_time,#{data.dayType}) as create_time,
+			ifnull(abs(sum(cr.money)),0) as other_pay2
+			from
+			charge_record cr
+			LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+			where cr.money &lt;0
+			and cr.account_type=1
+			<if test="data.payType==null">
+				and cr.type =14
+			</if>
+			<if test="data.payType!=null and data.payType.size() != 0">
+				and cr.type in
+				<foreach collection="data.payType" index="index" item="item" separator="," open="(" close=")">
+					<if test="item== 0">
+						0
+					</if>
+					<if test="item== 14">
+						14
+					</if>
+				</foreach>
+			</if>
+			<if test="data.schoolId != null and data.schoolId != ''">
+				and s.school_id in (${data.schoolId})
+			</if>
+			<if test="data.startDate != null and data.startDate != '' and data.endDate != null and data.endDate != ''">
+				AND DATE_FORMAT(cr.create_time ,#{data.dayType}) BETWEEN #{data.startDate}  AND #{data.endDate}
+			</if>
+			<if test="data.schoolIds != null and data.schoolIds.size()>0">
+				and s.SCHOOL_ID in
+				<foreach item="item" index="index" collection="data.schoolIds" open="(" separator="," close=")">
+					#{item}
+				</foreach>
+			</if>
+			GROUP BY DATE_FORMAT(cr.create_time,#{data.dayType})) as cr5 on cr1.create_time=DATE_FORMAT(cr5.create_time,#{data.dayType})
+			GROUP BY DATE_FORMAT(cr1.create_time,#{data.dayMonth})
+		) t order by t.create_time desc
+		<if test="page != null and pageSize != null and pageSize != 0">
+			LIMIT #{page},#{pageSize}
+		</if>
+	</select>
+	<!--1.grid：营业收入-营收按时间-count -->
+	<select id="pageBusinessIncomeByDateCount" parameterType="Object" resultType="int">
+		SELECT
+		count(1)
+		FROM(
+		SELECT
+		cr1.create_time
+		FROM
+		(SELECT
+		DATE_FORMAT(cr.create_time,#{data.dayMonth}) as create_time,
+		ifnull(sum(cr.money),0) as recharge_income
+		from
+		charge_record cr
+		LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+		where cr.account_type=1
+		<if test="data.incomeType==null">
+			and cr.type in(1,12)
+		</if>
+		<if test="data.incomeType!=null and data.incomeType.size() != 0">
+			cr.type in
+			<foreach collection="data.incomeType" index="index" item="item" separator="," open="(" close=")">
+				<if test="item== 0">
+					0
+				</if>
+				<if test="item== 1">
+					1
+				</if>
+				<if test="item== 12">
+					12
+				</if>
+			</foreach>
+		</if>
+		<if test="data.schoolId != null and data.schoolId != ''">
+			and s.school_id in (${data.schoolId})
+		</if>
+		<if test="data.startDate != null and data.startDate != '' and data.endDate != null and data.endDate != ''">
+			AND DATE_FORMAT(cr.create_time ,'%Y-%m-%d') BETWEEN #{data.startDate}  AND #{data.endDate}
+		</if>
+		<if test="data.schoolIds != null and data.schoolIds.size()>0">
+			and s.school_id in
+			<foreach item="item" index="index" collection="data.schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY DATE_FORMAT(cr.create_time,#{data.dayMonth})) as cr1
+		LEFT JOIN
+		(SELECT
+		DATE_FORMAT(cr.create_time,#{data.dayMonth}) as create_time,
+		ifnull(sum(cr.money),0) as other_income
+		from
+		charge_record cr
+		LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+		where cr.money>0
+		and cr.account_type=1
+		<if test="data.incomeType==null">
+			and cr.type in(9,10,14)
+		</if>
+		<if test="data.incomeType!=null and data.incomeType.size() != 0">
+			and cr.type in
+			<foreach collection="data.incomeType" index="index" item="item" separator="," open="(" close=")">
+				<if test="item== 0">
+					0
+				</if>
+				<if test="item== 9">
+					9
+				</if>
+				<if test="item== 10">
+					10
+				</if>
+				<if test="item== 14">
+					14
+				</if>
+			</foreach>
+		</if>
+		<if test="data.schoolId != null and data.schoolId != ''">
+			and s.school_id in (${data.schoolId})
+		</if>
+		<if test="data.startDate != null and data.startDate != '' and data.endDate != null and data.endDate != ''">
+			AND DATE_FORMAT(cr.create_time ,'%Y-%m-%d') BETWEEN #{data.startDate}  AND #{data.endDate}
+		</if>
+		<if test="data.schoolIds != null and data.schoolIds.size()>0">
+			and s.school_id in
+			<foreach item="item" index="index" collection="data.schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY DATE_FORMAT(cr.create_time,#{data.dayMonth})) as cr2 on cr1.create_time=DATE_FORMAT(cr2.create_time,#{data.dayMonth})
+		LEFT JOIN
+		(SELECT
+		DATE_FORMAT(cr.create_time,#{data.dayMonth}) as create_time,
+		ifnull(sum(cr.money),0) as returns_pay
+		from
+		charge_record cr
+		LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+		where cr.money>0
+		and cr.account_type=1
+		<if test="data.payType==null">
+			and cr.type in(2,13)
+		</if>
+		<if test="data.payType!=null and data.payType.size() != 0">
+			and cr.type in
+			<foreach collection="data.payType" index="index" item="item" separator="," open="(" close=")">
+				<if test="item== 0">
+					0
+				</if>
+				<if test="item== 2">
+					2
+				</if>
+				<if test="item== 13">
+					13
+				</if>
+			</foreach>
+		</if>
+		<if test="data.schoolId != null and data.schoolId != ''">
+			and s.school_id in (${data.schoolId})
+		</if>
+		<if test="data.startDate != null and data.startDate != '' and data.endDate != null and data.endDate != ''">
+			AND DATE_FORMAT(cr.create_time ,'%Y-%m-%d') BETWEEN #{data.startDate}  AND #{data.endDate}
+		</if>
+		<if test="data.schoolIds != null and data.schoolIds.size()>0">
+			and s.school_id in
+			<foreach item="item" index="index" collection="data.schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY DATE_FORMAT(cr.create_time,#{data.dayMonth})) as cr3 on cr1.create_time=DATE_FORMAT(cr3.create_time,#{data.dayMonth})
+		LEFT JOIN
+		(SELECT
+		DATE_FORMAT(cr.create_time,#{data.dayMonth}) as create_time,
+		ifnull(sum(cr.money),0) as other_pay
+		from
+		charge_record cr
+		LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+		where cr.account_type=1
+		<if test="data.payType==null">
+			and cr.type =16
+		</if>
+		<if test="data.payType!=null and data.payType.size() != 0">
+			cr.type in
+			<foreach collection="data.payType" index="index" item="item" separator="," open="(" close=")">
+				<if test="item== 0">
+					0
+				</if>
+				<if test="item== 16">
+					16
+				</if>
+			</foreach>
+		</if>
+		<if test="data.schoolId != null and data.schoolId != ''">
+			and s.school_id in (${data.schoolId})
+		</if>
+		<if test="data.startDate != null and data.startDate != '' and data.endDate != null and data.endDate != ''">
+			AND DATE_FORMAT(cr.create_time ,'%Y-%m-%d') BETWEEN #{data.startDate}  AND #{data.endDate}
+		</if>
+		<if test="data.schoolIds != null and data.schoolIds.size()>0">
+			and s.school_id in
+			<foreach item="item" index="index" collection="data.schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY DATE_FORMAT(cr.create_time,#{data.dayMonth})) as cr4 on cr1.create_time=DATE_FORMAT(cr4.create_time,#{data.dayMonth})
+		LEFT JOIN
+		(SELECT
+		DATE_FORMAT(cr.create_time,#{data.dayMonth}) as create_time,
+		ifnull(abs(sum(cr.money)),0) as other_pay2
+		from
+		charge_record cr
+		LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+		where cr.money &lt;0
+		and cr.account_type=1
+		<if test="data.payType==null">
+			and cr.type =14
+		</if>
+		<if test="data.payType!=null and data.payType.size() != 0">
+			and cr.type in
+			<foreach collection="data.payType" index="index" item="item" separator="," open="(" close=")">
+				<if test="item== 0">
+					0
+				</if>
+				<if test="item== 14">
+					14
+				</if>
+			</foreach>
+		</if>
+		<if test="data.schoolId != null and data.schoolId != ''">
+			and s.school_id in (${data.schoolId})
+		</if>
+		<if test="data.startDate != null and data.startDate != '' and data.endDate != null and data.endDate != ''">
+			AND DATE_FORMAT(cr.create_time ,'%Y-%m-%d') BETWEEN #{data.startDate}  AND #{data.endDate}
+		</if>
+		<if test="data.schoolIds != null and data.schoolIds.size()>0">
+			and s.school_id in
+			<foreach item="item" index="index" collection="data.schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY DATE_FORMAT(cr.create_time,#{data.dayMonth})) as cr5 on cr1.create_time=DATE_FORMAT(cr5.create_time,#{data.dayMonth})
+		GROUP BY cr1.create_time
+		)t
+	</select>
+	<!--0.chart：营业收入-营收按校区-->
+	<select id="businessIncomeSchoolChart" parameterType="Object" resultType="java.util.HashMap">
+		SELECT
+		t.school_name as axis,
+		ROUND(t.business_income,2) as series
+		from(
+		SELECT
+		sc.school_name,
+		ifnull((ifnull(cr1.recharge_income,0)+ifnull(cr2.other_income,0)-ifnull(cr3.returns_pay,0)-ifnull(cr4.other_pay,0)-ifnull(cr5.other_pay2,0)),0) as business_income
+		FROM
+		school sc
+		LEFT JOIN
+		(SELECT
+		s.SCHOOL_ID,
+		ifnull(sum(cr.money),0) as recharge_income
+		from
+		charge_record cr
+		LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+		where
+		<if test="incomeType==null">
+			cr.type in(1,12)
+		</if>
+		<if test="incomeType!=null and incomeType.size() != 0">
+			cr.type in
+			<foreach collection="incomeType" index="index" item="item" separator="," open="(" close=")">
+				<if test="item== 0">
+					0
+				</if>
+				<if test="item== 1">
+					1
+				</if>
+				<if test="item== 12">
+					12
+				</if>
+			</foreach>
+		</if>
+		<if test="startDate != null and startDate != '' and endDate != null and endDate != ''">
+			AND DATE_FORMAT(cr.create_time ,'%Y-%m-%d') BETWEEN #{startDate}  AND #{endDate}
+		</if>
+		<if test="schoolId != null and schoolId != ''">
+			and s.school_id in (${schoolId})
+		</if>
+		<if test="schoolIds != null and schoolIds.size()>0">
+			and s.SCHOOL_ID in
+			<foreach item="item" index="index" collection="schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY s.SCHOOL_ID) as cr1 on sc.school_id=cr1.SCHOOL_ID
+		LEFT JOIN
+		(SELECT
+		s.SCHOOL_ID,
+		ifnull(sum(cr.money),0) as other_income
+		from
+		charge_record cr
+		LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+		where cr.money>0
+		<if test="incomeType==null">
+			and cr.type in(9,10,14)
+		</if>
+		<if test="incomeType!=null and incomeType.size() != 0">
+			and cr.type in
+			<foreach collection="incomeType" index="index" item="item" separator="," open="(" close=")">
+				<if test="item== 0">
+					0
+				</if>
+				<if test="item== 9">
+					9
+				</if>
+				<if test="item== 10">
+					10
+				</if>
+				<if test="item== 14">
+					14
+				</if>
+			</foreach>
+		</if>
+		<if test="startDate != null and startDate != '' and endDate != null and endDate != ''">
+			AND DATE_FORMAT(cr.create_time ,'%Y-%m-%d') BETWEEN #{startDate}  AND #{endDate}
+		</if>
+		<if test="schoolId != null and schoolId != ''">
+			and s.school_id in (${schoolId})
+		</if>
+		<if test="schoolIds != null and schoolIds.size()>0">
+			and s.SCHOOL_ID in
+			<foreach item="item" index="index" collection="schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY s.SCHOOL_ID) as cr2 on sc.school_id=cr2.SCHOOL_ID
+		LEFT JOIN
+		(SELECT
+		s.SCHOOL_ID,
+		abs(ifnull(sum(cr.money),0)) as returns_pay
+		from
+		charge_record cr
+		LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+		where 1=1
+		<if test="payType==null">
+			and cr.type in(2,13)
+		</if>
+		<if test="payType!=null and payType.size() != 0">
+			and cr.type in
+			<foreach collection="payType" index="index" item="item" separator="," open="(" close=")">
+				<if test="item== 0">
+					0
+				</if>
+				<if test="item== 2">
+					2
+				</if>
+				<if test="item== 13">
+					13
+				</if>
+			</foreach>
+		</if>
+		<if test="startDate != null and startDate != '' and endDate != null and endDate != ''">
+			AND DATE_FORMAT(cr.create_time ,'%Y-%m-%d') BETWEEN #{startDate}  AND #{endDate}
+		</if>
+		<if test="schoolId != null and schoolId != ''">
+			and s.school_id in (${schoolId})
+		</if>
+		<if test="schoolIds != null and schoolIds.size()>0">
+			and s.SCHOOL_ID in
+			<foreach item="item" index="index" collection="schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY s.SCHOOL_ID) as cr3 on sc.school_id=cr3.SCHOOL_ID
+		LEFT JOIN
+		(SELECT
+		s.SCHOOL_ID,
+		abs(ifnull(sum(cr.money),0)) as other_pay
+		from
+		charge_record cr
+		LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+		where
+		<if test="payType==null">
+			cr.type =16
+		</if>
+		<if test="payType!=null and payType.size() != 0">
+			cr.type in
+			<foreach collection="payType" index="index" item="item" separator="," open="(" close=")">
+				<if test="item== 0">
+					0
+				</if>
+				<if test="item== 16">
+					16
+				</if>
+			</foreach>
+		</if>
+		<if test="startDate != null and startDate != '' and endDate != null and endDate != ''">
+			AND DATE_FORMAT(cr.create_time ,'%Y-%m-%d') BETWEEN #{startDate}  AND #{endDate}
+		</if>
+		<if test="schoolId != null and schoolId != ''">
+			and s.school_id in (${schoolId})
+		</if>
+		<if test="schoolIds != null and schoolIds.size()>0">
+			and s.SCHOOL_ID in
+			<foreach item="item" index="index" collection="schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY s.SCHOOL_ID) as cr4 on sc.school_id=cr4.SCHOOL_ID
+		LEFT JOIN
+		(SELECT
+		s.SCHOOL_ID,
+		ifnull(abs(sum(cr.money)),0) as other_pay2
+		from
+		charge_record cr
+		LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+		where cr.money &lt; 0
+		<if test="payType==null">
+			and cr.type =14
+		</if>
+		<if test="payType!=null and payType.size() != 0">
+			and cr.type in
+			<foreach collection="payType" index="index" item="item" separator="," open="(" close=")">
+				<if test="item== 0">
+					0
+				</if>
+				<if test="item== 14">
+					14
+				</if>
+			</foreach>
+		</if>
+		<if test="startDate != null and startDate != '' and endDate != null and endDate != ''">
+			AND DATE_FORMAT(cr.create_time ,'%Y-%m-%d') BETWEEN #{startDate}  AND #{endDate}
+		</if>
+		<if test="schoolId != null and schoolId != ''">
+			and s.school_id in (${schoolId})
+		</if>
+		<if test="schoolIds != null and schoolIds.size()>0">
+			and s.SCHOOL_ID in
+			<foreach item="item" index="index" collection="schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY s.SCHOOL_ID) as cr5 on sc.school_id=cr5.SCHOOL_ID
+		where 1=1
+		<if test="schoolId != null and schoolId != ''">
+			and sc.school_id in (${schoolId})
+		</if>
+		<if test="schoolIds != null and schoolIds.size()>0">
+			and sc.SCHOOL_ID in
+			<foreach item="item" index="index" collection="schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		) t
+		order by t.business_income desc
+	</select>
+	<!--0.title-表头：营业收入-统计汇总-->
+	<select id="businessIncomeCount" parameterType="Object" resultType="java.util.HashMap">
+		SELECT
+		Format(sum(t.recharge_income),2) as recharge_income,
+		Format(sum(t.other_income),2) as other_income,
+		Format(sum(t.returns_pay),2) as returns_pay,
+		Format(sum(t.other_pay),2) as other_pay,
+		Format(sum(t.business_income),2) as business_income,
+		sum(t.business_income) as business_income_v
+		from(
+		SELECT
+		ifnull(cr1.recharge_income,0) as recharge_income,
+		ifnull(cr2.other_income,0) as other_income,
+		ifnull(cr3.returns_pay,0) as returns_pay,
+		ifnull((cr4.other_pay+cr5.other_pay2),0) as other_pay,
+		ifnull((ifnull(cr1.recharge_income,0)+ifnull(cr2.other_income,0)-ifnull(cr3.returns_pay,0)-ifnull(cr4.other_pay,0)-ifnull(cr5.other_pay2,0)),0) as business_income
+		FROM
+		school sc
+		LEFT JOIN
+		(SELECT
+		s.SCHOOL_ID,
+		ifnull(sum(cr.money),0) as recharge_income
+		from
+		charge_record cr
+		LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+		where cr.account_type=1
+		<if test="incomeType==null">
+			and cr.type in(1,12)
+		</if>
+		<if test="incomeType!=null and incomeType.size() != 0">
+			cr.type in
+			<foreach collection="incomeType" index="index" item="item" separator="," open="(" close=")">
+				<if test="item== 0">
+					0
+				</if>
+				<if test="item== 1">
+					1
+				</if>
+				<if test="item== 12">
+					12
+				</if>
+			</foreach>
+		</if>
+		<if test="startDate != null and startDate != '' and endDate != null and endDate != ''">
+			AND DATE_FORMAT(cr.create_time ,'%Y-%m-%d') BETWEEN #{startDate}  AND #{endDate}
+		</if>
+		<if test="schoolId != null and schoolId != ''">
+			and s.school_id in (${schoolId})
+		</if>
+		<if test="schoolIds != null and schoolIds.size()>0">
+			and s.SCHOOL_ID in
+			<foreach item="item" index="index" collection="schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY s.SCHOOL_ID) as cr1 on sc.school_id=cr1.SCHOOL_ID
+		LEFT JOIN
+		(SELECT
+		s.SCHOOL_ID,
+		ifnull(sum(cr.money),0) as other_income
+		from
+		charge_record cr
+		LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+		where cr.money>0
+		and cr.account_type=1
+		<if test="incomeType==null">
+			and cr.type in(9,10,14)
+		</if>
+		<if test="incomeType!=null and incomeType.size() != 0">
+			and cr.type in
+			<foreach collection="incomeType" index="index" item="item" separator="," open="(" close=")">
+				<if test="item== 0">
+					0
+				</if>
+				<if test="item== 9">
+					9
+				</if>
+				<if test="item== 10">
+					10
+				</if>
+				<if test="item== 14">
+					14
+				</if>
+			</foreach>
+		</if>
+		<if test="startDate != null and startDate != '' and endDate != null and endDate != ''">
+			AND DATE_FORMAT(cr.create_time ,'%Y-%m-%d') BETWEEN #{startDate}  AND #{endDate}
+		</if>
+		<if test="schoolId != null and schoolId != ''">
+			and s.school_id in (${schoolId})
+		</if>
+		<if test="schoolIds != null and schoolIds.size()>0">
+			and s.SCHOOL_ID in
+			<foreach item="item" index="index" collection="schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY s.SCHOOL_ID) as cr2 on sc.school_id=cr2.SCHOOL_ID
+		LEFT JOIN
+		(SELECT
+		s.SCHOOL_ID,
+		ifnull(abs(sum(cr.money)),0) as returns_pay
+		from
+		charge_record cr
+		LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+		where cr.account_type=1
+		<if test="payType==null">
+			and cr.type in(2,13)
+		</if>
+		<if test="payType!=null and payType.size() != 0">
+			and cr.type in
+			<foreach collection="payType" index="index" item="item" separator="," open="(" close=")">
+				<if test="item== 0">
+					0
+				</if>
+				<if test="item== 2">
+					2
+				</if>
+				<if test="item== 13">
+					13
+				</if>
+			</foreach>
+		</if>
+		<if test="startDate != null and startDate != '' and endDate != null and endDate != ''">
+			AND DATE_FORMAT(cr.create_time ,'%Y-%m-%d') BETWEEN #{startDate}  AND #{endDate}
+		</if>
+		<if test="schoolId != null and schoolId != ''">
+			and s.school_id in (${schoolId})
+		</if>
+		<if test="schoolIds != null and schoolIds.size()>0">
+			and s.SCHOOL_ID in
+			<foreach item="item" index="index" collection="schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY s.SCHOOL_ID) as cr3 on sc.school_id=cr3.SCHOOL_ID
+		LEFT JOIN
+		(SELECT
+		s.SCHOOL_ID,
+		ifnull(sum(cr.money),0) as other_pay
+		from
+		charge_record cr
+		LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+		where cr.account_type=1
+		<if test="payType==null">
+			and cr.type =16
+		</if>
+		<if test="payType!=null and payType.size() != 0">
+			cr.type in
+			<foreach collection="payType" index="index" item="item" separator="," open="(" close=")">
+				<if test="item== 0">
+					0
+				</if>
+				<if test="item== 16">
+					16
+				</if>
+			</foreach>
+		</if>
+		<if test="startDate != null and startDate != '' and endDate != null and endDate != ''">
+			AND DATE_FORMAT(cr.create_time ,'%Y-%m-%d') BETWEEN #{startDate}  AND #{endDate}
+		</if>
+		<if test="schoolId != null and schoolId != ''">
+			and s.school_id in (${schoolId})
+		</if>
+		<if test="schoolIds != null and schoolIds.size()>0">
+			and s.SCHOOL_ID in
+			<foreach item="item" index="index" collection="schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY s.SCHOOL_ID) as cr4 on sc.school_id=cr4.SCHOOL_ID
+		LEFT JOIN
+		(SELECT
+		s.SCHOOL_ID,
+		ifnull(abs(sum(cr.money)),0) as other_pay2
+		from
+		charge_record cr
+		LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+		where cr.money &lt; 0
+		and cr.account_type=1
+		<if test="payType==null">
+			and cr.type =14
+		</if>
+		<if test="payType!=null and payType.size() != 0">
+			and cr.type in
+			<foreach collection="payType" index="index" item="item" separator="," open="(" close=")">
+				<if test="item== 0">
+					0
+				</if>
+				<if test="item== 14">
+					14
+				</if>
+			</foreach>
+		</if>
+		<if test="startDate != null and startDate != '' and endDate != null and endDate != ''">
+			AND DATE_FORMAT(cr.create_time ,'%Y-%m-%d') BETWEEN #{startDate}  AND #{endDate}
+		</if>
+		<if test="schoolId != null and schoolId != ''">
+			and s.school_id in (${schoolId})
+		</if>
+		<if test="schoolIds != null and schoolIds.size()>0">
+			and s.SCHOOL_ID in
+			<foreach item="item" index="index" collection="schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY s.SCHOOL_ID) as cr5 on sc.school_id=cr5.SCHOOL_ID
+		where 1=1
+		<if test="schoolId != null and schoolId != ''">
+			and sc.school_id in (${schoolId})
+		</if>
+		<if test="schoolIds != null and schoolIds.size()>0">
+			and sc.SCHOOL_ID in
+			<foreach item="item" index="index" collection="schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		) t
+		order by t.business_income desc
+	</select>
+	<!--1.chart：营业收入-营收按时间-->
+	<select id="businessIncomeDateChart" parameterType="Object" resultType="java.util.HashMap">
+		SELECT
+		t.create_time,
+		t.business_income as business_income
+		from(
+		SELECT
+		cr1.create_time,
+		round(ifnull((ifnull(cr1.recharge_income,0)+ifnull(cr2.other_income,0)-ifnull(cr3.returns_pay,0)-ifnull(cr4.other_pay,0)-ifnull(cr5.other_pay2,0)),0),2) as business_income
+		FROM
+		(SELECT
+		DATE_FORMAT(cr.create_time,if(#{dayMonth}='%Y-%m-%d','%m-%d',#{dayMonth})) as create_time,
+		ifnull(sum(cr.money),0) as recharge_income
+		from
+		charge_record cr
+		LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+		where cr.account_type=1
+		<if test="incomeType==null">
+			and cr.type in(1,12)
+		</if>
+		<if test="incomeType!=null and incomeType.size() != 0">
+			cr.type in
+			<foreach collection="incomeType" index="index" item="item" separator="," open="(" close=")">
+				<if test="item== 0">
+					0
+				</if>
+				<if test="item== 1">
+					1
+				</if>
+				<if test="item== 12">
+					12
+				</if>
+			</foreach>
+		</if>
+		<if test="schoolId != null and schoolId != ''">
+			and s.school_id in (${schoolId})
+		</if>
+		<if test="startDate != null and startDate != '' and endDate != null and endDate != ''">
+			AND DATE_FORMAT(cr.create_time ,'%Y-%m-%d') BETWEEN #{startDate}  AND #{endDate}
+		</if>
+		<if test="schoolIds != null and schoolIds.size()>0">
+			and s.school_id in
+			<foreach item="item" index="index" collection="schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY DATE_FORMAT(cr.create_time,#{dayMonth})) as cr1
+		LEFT JOIN
+		(SELECT
+		DATE_FORMAT(cr.create_time,#{dayMonth}) as create_time,
+		ifnull(sum(cr.money),0) as other_income
+		from
+		charge_record cr
+		LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+		where cr.money>0
+		and cr.account_type=1
+		<if test="incomeType==null">
+			and cr.type in(9,10,14)
+		</if>
+		<if test="incomeType!=null and incomeType.size() != 0">
+			and cr.type in
+			<foreach collection="incomeType" index="index" item="item" separator="," open="(" close=")">
+				<if test="item== 0">
+					0
+				</if>
+				<if test="item== 9">
+					9
+				</if>
+				<if test="item== 10">
+					10
+				</if>
+				<if test="item== 14">
+					14
+				</if>
+			</foreach>
+		</if>
+		<if test="schoolId != null and schoolId != ''">
+			and s.school_id in (${schoolId})
+		</if>
+		<if test="startDate != null and startDate != '' and endDate != null and endDate != ''">
+			AND DATE_FORMAT(cr.create_time ,'%Y-%m-%d') BETWEEN #{startDate}  AND #{endDate}
+		</if>
+		<if test="schoolIds != null and schoolIds.size()>0">
+			and s.school_id in
+			<foreach item="item" index="index" collection="schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY DATE_FORMAT(cr.create_time,#{dayMonth})) as cr2 on cr1.create_time=DATE_FORMAT(cr2.create_time,#{dayMonth})
+		LEFT JOIN
+		(SELECT
+		DATE_FORMAT(cr.create_time,#{dayMonth}) as create_time,
+		ifnull(sum(cr.money),0) as returns_pay
+		from
+		charge_record cr
+		LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+		where cr.money>0
+		and cr.account_type=1
+		<if test="payType==null">
+			and cr.type in(2,13)
+		</if>
+		<if test="payType!=null and payType.size() != 0">
+			and cr.type in
+			<foreach collection="payType" index="index" item="item" separator="," open="(" close=")">
+				<if test="item== 0">
+					0
+				</if>
+				<if test="item== 2">
+					2
+				</if>
+				<if test="item== 13">
+					13
+				</if>
+			</foreach>
+		</if>
+		<if test="schoolId != null and schoolId != ''">
+			and s.school_id in (${schoolId})
+		</if>
+		<if test="startDate != null and startDate != '' and endDate != null and endDate != ''">
+			AND DATE_FORMAT(cr.create_time ,'%Y-%m-%d') BETWEEN #{startDate}  AND #{endDate}
+		</if>
+		<if test="schoolIds != null and schoolIds.size()>0">
+			and s.school_id in
+			<foreach item="item" index="index" collection="schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY DATE_FORMAT(cr.create_time,#{dayMonth})) as cr3 on cr1.create_time=DATE_FORMAT(cr3.create_time,#{dayMonth})
+		LEFT JOIN
+		(SELECT
+		DATE_FORMAT(cr.create_time,#{dayMonth}) as create_time,
+		ifnull(sum(cr.money),0) as other_pay
+		from
+		charge_record cr
+		LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+		where cr.account_type=1
+		<if test="payType==null">
+			and cr.type =16
+		</if>
+		<if test="payType!=null and payType.size() != 0">
+			cr.type in
+			<foreach collection="payType" index="index" item="item" separator="," open="(" close=")">
+				<if test="item== 0">
+					0
+				</if>
+				<if test="item== 16">
+					16
+				</if>
+			</foreach>
+		</if>
+		<if test="schoolId != null and schoolId != ''">
+			and s.school_id in (${schoolId})
+		</if>
+		<if test="startDate != null and startDate != '' and endDate != null and endDate != ''">
+			AND DATE_FORMAT(cr.create_time ,'%Y-%m-%d') BETWEEN #{startDate}  AND #{endDate}
+		</if>
+		<if test="schoolIds != null and schoolIds.size()>0">
+			and s.school_id in
+			<foreach item="item" index="index" collection="schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY DATE_FORMAT(cr.create_time,#{dayMonth})) as cr4 on cr1.create_time=DATE_FORMAT(cr4.create_time,#{dayMonth})
+		LEFT JOIN
+		(SELECT
+		DATE_FORMAT(cr.create_time,#{dayMonth}) as create_time,
+		ifnull(abs(sum(cr.money)),0) as other_pay2
+		from
+		charge_record cr
+		LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+		where cr.money &lt;0
+		and cr.account_type=1
+		<if test="payType==null">
+			and cr.type =14
+		</if>
+		<if test="payType!=null and payType.size() != 0">
+			and cr.type in
+			<foreach collection="payType" index="index" item="item" separator="," open="(" close=")">
+				<if test="item== 0">
+					0
+				</if>
+				<if test="item== 14">
+					14
+				</if>
+			</foreach>
+		</if>
+		<if test="schoolId != null and schoolId != ''">
+			and s.school_id in (${schoolId})
+		</if>
+		<if test="startDate != null and startDate != '' and endDate != null and endDate != ''">
+			AND DATE_FORMAT(cr.create_time ,'%Y-%m-%d') BETWEEN #{startDate}  AND #{endDate}
+		</if>
+		<if test="schoolIds != null and schoolIds.size()>0">
+			and s.school_id in
+			<foreach item="item" index="index" collection="schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY DATE_FORMAT(cr.create_time,#{dayMonth})) as cr5 on cr1.create_time=DATE_FORMAT(cr5.create_time,#{dayMonth})
+		GROUP BY cr1.create_time
+		) t order by t.create_time asc
+	</select>
+	<!--1.export：营业收入-营收按时间-->
+	<select id="exportBusinessIncomeByDate" parameterType="Object" resultType="java.util.HashMap">
+		SELECT
+			t.create_time,
+			Format(t.recharge_income,2) as recharge_income,
+			Format(t.other_income,2) as other_income,
+			Format(t.returns_pay,2) as returns_pay,
+			Format(t.other_pay,2) as other_pay,
+			Format(t.business_income,2) as business_income,
+			concat(round(ifnull((t.business_income/${totalMoney}),0)*100,2),'%') as business_scale
+		from(
+		SELECT
+			cr1.create_time,
+			ifnull(cr1.recharge_income,0) as recharge_income,
+			ifnull(cr2.other_income,0) as other_income,
+			ifnull(cr3.returns_pay,0) as returns_pay,
+			ifnull((cr4.other_pay+cr5.other_pay2),0) as other_pay,
+			ifnull((ifnull(cr1.recharge_income,0)+ifnull(cr2.other_income,0)-ifnull(cr3.returns_pay,0)-ifnull(cr4.other_pay,0)-ifnull(cr5.other_pay2,0)),0) as business_income
+		FROM
+		(SELECT
+		DATE_FORMAT(cr.create_time,#{dayMonth}) as create_time,
+		ifnull(sum(cr.money),0) as recharge_income
+		from
+		charge_record cr
+		LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+		where cr.account_type=1
+		<if test="incomeType==null">
+			and cr.type in(1,12)
+		</if>
+		<if test="incomeType!=null and incomeType.size() != 0">
+			cr.type in
+			<foreach collection="incomeType" index="index" item="item" separator="," open="(" close=")">
+				<if test="item== 0">
+					0
+				</if>
+				<if test="item== 1">
+					1
+				</if>
+				<if test="item== 12">
+					12
+				</if>
+			</foreach>
+		</if>
+		<if test="schoolId != null and schoolId != ''">
+			and s.school_id in (${schoolId})
+		</if>
+		<if test="schoolIds != null and schoolIds.size()>0">
+			and s.school_id in
+			<foreach item="item" index="index" collection="schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="startDate != null and startDate != '' and endDate != null and endDate != ''">
+			AND DATE_FORMAT(cr.create_time ,'%Y-%m-%d') BETWEEN #{startDate}  AND #{endDate}
+		</if>
+		GROUP BY DATE_FORMAT(cr.create_time,#{dayMonth})) as cr1
+		LEFT JOIN
+		(SELECT
+		DATE_FORMAT(cr.create_time,#{dayMonth}) as create_time,
+		ifnull(sum(cr.money),0) as other_income
+		from
+		charge_record cr
+		LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+		where cr.money>0
+		and cr.account_type=1
+		<if test="incomeType==null">
+			and cr.type in(9,10,14)
+		</if>
+		<if test="incomeType!=null and incomeType.size() != 0">
+			and cr.type in
+			<foreach collection="incomeType" index="index" item="item" separator="," open="(" close=")">
+				<if test="item== 0">
+					0
+				</if>
+				<if test="item== 9">
+					9
+				</if>
+				<if test="item== 10">
+					10
+				</if>
+				<if test="item== 14">
+					14
+				</if>
+			</foreach>
+		</if>
+		<if test="schoolId != null and schoolId != ''">
+			and s.school_id in (${schoolId})
+		</if>
+		<if test="schoolIds != null and schoolIds.size()>0">
+			and s.school_id in
+			<foreach item="item" index="index" collection="schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="startDate != null and startDate != '' and endDate != null and endDate != ''">
+			AND DATE_FORMAT(cr.create_time ,'%Y-%m-%d') BETWEEN #{startDate}  AND #{endDate}
+		</if>
+		GROUP BY DATE_FORMAT(cr.create_time,#{dayMonth})) as cr2 on cr1.create_time=DATE_FORMAT(cr2.create_time,#{dayMonth})
+		LEFT JOIN
+		(SELECT
+		DATE_FORMAT(cr.create_time,#{dayMonth}) as create_time,
+		abs(ifnull(sum(cr.money),0)) as returns_pay
+		from
+		charge_record cr
+		LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+		where cr.money &lt;0
+		and cr.account_type=1
+		<if test="payType==null">
+			and cr.type in(2,13)
+		</if>
+		<if test="payType!=null and payType.size() != 0">
+			and cr.type in
+			<foreach collection="payType" index="index" item="item" separator="," open="(" close=")">
+				<if test="item== 0">
+					0
+				</if>
+				<if test="item== 2">
+					2
+				</if>
+				<if test="item== 13">
+					13
+				</if>
+			</foreach>
+		</if>
+		<if test="schoolId != null and schoolId != ''">
+			and s.school_id in (${schoolId})
+		</if>
+		<if test="schoolIds != null and schoolIds.size()>0">
+			and s.school_id in
+			<foreach item="item" index="index" collection="schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="startDate != null and startDate != '' and endDate != null and endDate != ''">
+			AND DATE_FORMAT(cr.create_time ,'%Y-%m-%d') BETWEEN #{startDate}  AND #{endDate}
+		</if>
+		GROUP BY DATE_FORMAT(cr.create_time,#{dayMonth})) as cr3 on cr1.create_time=DATE_FORMAT(cr3.create_time,#{dayMonth})
+		LEFT JOIN
+		(SELECT
+		DATE_FORMAT(cr.create_time,#{dayMonth}) as create_time,
+		ifnull(sum(cr.money),0) as other_pay
+		from
+		charge_record cr
+		LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+		where cr.account_type=1
+		<if test="payType==null">
+			and cr.type =16
+		</if>
+		<if test="payType!=null and payType.size() != 0">
+			cr.type in
+			<foreach collection="payType" index="index" item="item" separator="," open="(" close=")">
+				<if test="item== 0">
+					0
+				</if>
+				<if test="item== 16">
+					16
+				</if>
+			</foreach>
+		</if>
+		<if test="schoolId != null and schoolId != ''">
+			and s.school_id in (${schoolId})
+		</if>
+		<if test="schoolIds != null and schoolIds.size()>0">
+			and s.school_id in
+			<foreach item="item" index="index" collection="schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="startDate != null and startDate != '' and endDate != null and endDate != ''">
+			AND DATE_FORMAT(cr.create_time ,'%Y-%m-%d') BETWEEN #{startDate}  AND #{endDate}
+		</if>
+		GROUP BY DATE_FORMAT(cr.create_time,#{dayMonth})) as cr4 on cr1.create_time=DATE_FORMAT(cr4.create_time,#{dayMonth})
+		LEFT JOIN
+		(SELECT
+		DATE_FORMAT(cr.create_time,#{dayMonth}) as create_time,
+		ifnull(abs(sum(cr.money)),0) as other_pay2
+		from
+		charge_record cr
+		LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+		where cr.money &lt;0
+		and cr.account_type=1
+		<if test="payType==null">
+			and cr.type =14
+		</if>
+		<if test="payType!=null and payType.size() != 0">
+			and cr.type in
+			<foreach collection="payType" index="index" item="item" separator="," open="(" close=")">
+				<if test="item== 0">
+					0
+				</if>
+				<if test="item== 14">
+					14
+				</if>
+			</foreach>
+		</if>
+		<if test="schoolId != null and schoolId != ''">
+			and s.school_id in (${schoolId})
+		</if>
+		<if test="schoolIds != null and schoolIds.size()>0">
+			and s.school_id in
+			<foreach item="item" index="index" collection="schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="startDate != null and startDate != '' and endDate != null and endDate != ''">
+			AND DATE_FORMAT(cr.create_time ,'%Y-%m-%d') BETWEEN #{startDate}  AND #{endDate}
+		</if>
+		GROUP BY DATE_FORMAT(cr.create_time,#{dayMonth})) as cr5 on cr1.create_time=DATE_FORMAT(cr5.create_time,#{dayMonth})
+		GROUP BY cr1.create_time
+		) t order by t.create_time desc
+	</select>
+	<!--2.grid：营业收入-营收按支付类型-list-->
+	<select id="pageBusinessIncomeByPayType" parameterType="Object" resultType="java.util.HashMap">
+		SELECT
+		case when  cr.pay_type=1 then '现金'
+		when  cr.pay_type=2 then '微信'
+		when  cr.pay_type=3 then '支付宝'
+		when  cr.pay_type=5 then '刷卡支付'
+		else '其他'
+		end as pay_type,
+		ifnull(sum(cr.money),0) as money,
+		concat(round((ifnull(sum(cr.money),0)/${data.totalMoney})*100,2),'%') as money_scale,
+		0 as recharge_income,
+		0 as other_income,
+		0 as returns_pay,
+		0 as other_pay,
+		0 as business_income
+		from
+		charge_record cr
+		LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+		where cr.type in (1,12)
+		and cr.pay_type in (1,2,3,4,5,6)
+		<if test="data.schoolId != null and data.schoolId != ''">
+			and s.school_id in (${data.schoolId})
+		</if>
+		<if test="data.startDate != null and data.startDate != '' and data.endDate != null and data.endDate != ''">
+			AND DATE_FORMAT(cr.create_time ,'%Y-%m-%d') BETWEEN #{data.startDate}  AND #{data.endDate}
+		</if>
+		<if test="data.schoolIds != null and data.schoolIds.size()>0">
+			and s.SCHOOL_ID in
+			<foreach item="item" index="index" collection="data.schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY cr.pay_type
+	</select>
+	<!--2.grid：营业收入-营收按支付类型-count -->
+	<select id="pageBusinessIncomeByPayTypeCount" parameterType="Object" resultType="int">
+		select count(1) from(
+		SELECT
+		cr.pay_type
+		from
+		charge_record cr
+		LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+		where cr.type in (1,12)
+		and cr.pay_type in (1,2,3,4,5,6)
+		<if test="data.schoolId != null and data.schoolId != ''">
+			and s.school_id in (${data.schoolId})
+		</if>
+		<if test="data.startDate != null and data.startDate != '' and data.endDate != null and data.endDate != ''">
+			AND DATE_FORMAT(cr.create_time ,'%Y-%m-%d') BETWEEN #{data.startDate} AND #{data.endDate}
+		</if>
+		<if test="data.schoolIds != null and data.schoolIds.size()>0">
+			and s.SCHOOL_ID in
+			<foreach item="item" index="index" collection="data.schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY cr.pay_type
+		)t
+	</select>
+	<!-- 2.按照充值方式：先查询出总的充值金额-->
+	<select id="businessIncomeByPayTypeCount" parameterType="Object" resultType="java.lang.Double">
+		SELECT
+		ifnull(sum(cr.money),0) as money
+		from
+		charge_record cr
+		LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+		where cr.type in (1,12)
+		and cr.pay_type in (1,2,3,4,5,6)
+		<if test="schoolId != null and schoolId != ''">
+			and s.school_id in (${schoolId})
+		</if>
+		<if test="startDate != null and startDate != '' and endDate != null and endDate != ''">
+			AND DATE_FORMAT(cr.create_time ,'%Y-%m-%d') BETWEEN #{startDate}  AND #{endDate}
+		</if>
+		<if test="schoolIds != null and schoolIds.size()>0">
+			and s.SCHOOL_ID in
+			<foreach item="item" index="index" collection="schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+	</select>
+	<!--2.chart：营业收入-营收按支付类型-->
+	<select id="businessIncomePayTypeChart" parameterType="Object" resultType="java.util.HashMap">
+		SELECT
+		case when  cr.pay_type=1 then '现金'
+		when  cr.pay_type=2 then '微信'
+		when  cr.pay_type=3 then '支付宝'
+		when  cr.pay_type=5 then '刷卡支付'
+		else '其他'
+		end as  axis,
+		ifnull(sum(cr.money),0) as series
+		from
+		charge_record cr
+		LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+		where cr.type in (1,12)
+		and cr.pay_type in (1,2,3,4,5,6)
+		<if test="schoolId != null and schoolId != ''">
+			and s.school_id in (${schoolId})
+		</if>
+		<if test="startDate != null and startDate != '' and endDate != null and endDate != ''">
+			AND DATE_FORMAT(cr.create_time ,'%Y-%m-%d') BETWEEN #{startDate}  AND #{endDate}
+		</if>
+		<if test="schoolIds != null and schoolIds.size()>0">
+			and s.school_id in
+			<foreach item="item" index="index" collection="schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY cr.pay_type
+	</select>
+	<!--2.export：营业收入-营收按支付类型-->
+	<select id="exportBusinessIncomeByPayType" parameterType="Object" resultType="java.util.HashMap">
+		SELECT
+		case when  cr.pay_type=1 then '现金'
+		when  cr.pay_type=2 then '微信'
+		when  cr.pay_type=3 then '支付宝'
+		end as pay_type,
+		ifnull(sum(cr.money),0) as money,
+		concat(round((ifnull(sum(cr.money),0)/${totalMoney})*100,2),'%') as money_scale
+		from
+		charge_record cr
+		LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+		where cr.type in (1,12)
+		and cr.pay_type in (1,2,3,4,5,6)
+		<if test="schoolId != null and schoolId != ''">
+			and s.school_id in (${schoolId})
+		</if>
+		<if test="startDate != null and startDate != '' and endDate != null and endDate != ''">
+			AND DATE_FORMAT(cr.create_time ,'%Y-%m-%d') BETWEEN #{startDate}  AND #{endDate}
+		</if>
+		<if test="schoolIds != null and schoolIds.size()>0">
+			and s.SCHOOL_ID in
+			<foreach item="item" index="index" collection="schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY cr.pay_type
+	</select>
+	<!--3.grid：营业收入-营收按收入类型-list-->
+	<select id="pageBusinessIncomeByType" parameterType="Object" resultType="java.util.HashMap">
+		SELECT
+		case when cr.type=1 then '充值'
+		when cr.type=12 then '转校充值'
+		when cr.type=9 then '退费营收'
+		when cr.type=10 then '订金抵扣金额'
+		when cr.type=14 then '取消团体票'
+		end as type_name,
+		ifnull(sum(cr.money),0) as money,
+		concat(round((ifnull(sum(cr.money),0)/${data.totalMoney})*100,2),'%') as money_scale,
+		0 as recharge_income,
+		0 as other_income,
+		0 as returns_pay,
+		0 as other_pay,
+		0 as business_income
+		from
+		charge_record cr
+		LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+		where cr.type in (1,12,9,10,14)
+		and cr.money>0
+		<if test="data.schoolId != null and data.schoolId != ''">
+			and s.school_id in (${data.schoolId})
+		</if>
+		<if test="data.startDate != null and data.startDate != '' and data.endDate != null and data.endDate != ''">
+			AND DATE_FORMAT(cr.create_time ,'%Y-%m-%d') BETWEEN #{data.startDate}  AND #{data.endDate}
+		</if>
+		<if test="data.schoolIds != null and data.schoolIds.size()>0">
+			and s.SCHOOL_ID in
+			<foreach item="item" index="index" collection="data.schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY cr.type
+		<if test="page != null and pageSize != null and pageSize != ''">
+			LIMIT #{page},#{pageSize}
+		</if>
+	</select>
+	<!--3.grid：营业收入-营收按收入类型-count -->
+	<select id="pageBusinessIncomeByTypeCount" parameterType="Object" resultType="int">
+		select count(1) from(
+		SELECT
+		cr.type
+		from
+		charge_record cr
+		LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+		where cr.type in (1,12,9,10,14)
+		and cr.money>0
+		<if test="data.schoolId != null and data.schoolId != ''">
+			and s.school_id in (${data.schoolId})
+		</if>
+		<if test="data.startDate != null and data.startDate != '' and data.endDate != null and data.endDate != ''">
+			AND DATE_FORMAT(cr.create_time ,'%Y-%m-%d') BETWEEN #{data.startDate} AND #{data.endDate}
+		</if>
+		<if test="data.schoolIds != null and data.schoolIds.size()>0">
+			and s.SCHOOL_ID in
+			<foreach item="item" index="index" collection="data.schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY cr.type
+		) t
+	</select>
+	<!-- 3.title：营业收入-按照收入类型：先查询出总的充值金额-->
+	<select id="businessIncomeByTypeCount" parameterType="Object" resultType="java.lang.Double">
+		SELECT
+		ifnull(sum(cr.money),0) as money
+		from
+		charge_record cr
+		LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+		where cr.type in (1,12,9,10,14)
+		and cr.money>0
+		<if test="schoolId != null and schoolId != ''">
+			and s.school_id in (${schoolId})
+		</if>
+		<if test="startDate != null and startDate != '' and endDate != null and endDate != ''">
+			AND DATE_FORMAT(cr.create_time ,'%Y-%m-%d') BETWEEN #{startDate}  AND #{endDate}
+		</if>
+		<if test="schoolIds != null and schoolIds.size()>0">
+			and s.SCHOOL_ID in
+			<foreach item="item" index="index" collection="schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+	</select>
+	<!--3.chart：营业收入-营收按收入类型-->
+	<select id="businessIncomeTypeChart" parameterType="Object" resultType="java.util.HashMap">
+		SELECT * from (
+		SELECT
+		case when cr.type=1 then '充值'
+		when cr.type=12 then '转校充值'
+		when cr.type=9 then '退费营收'
+		when cr.type=10 then '订金抵扣金额'
+		when cr.type=14 then '取消团体票'
+		end as axis,
+		ifnull(sum(cr.money),0) as series
+		from
+		charge_record cr
+		LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+		where cr.type in (1,12,9,10,14)
+		and cr.money>0
+		<if test="schoolId != null and schoolId != ''">
+			and s.school_id in (${schoolId})
+		</if>
+		<if test="startDate != null and startDate != '' and endDate != null and endDate != ''">
+			AND DATE_FORMAT(cr.create_time ,'%Y-%m-%d') BETWEEN #{startDate}  AND #{endDate}
+		</if>
+		<if test="schoolIds != null and schoolIds.size()>0">
+			and s.school_id in
+			<foreach item="item" index="index" collection="schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY cr.type
+		) t
+		order by t.series desc
+	</select>
+	<!--3.export：营业收入-营收按收入类型-->
+	<select id="exportBusinessIncomeByType" parameterType="Object" resultType="java.util.HashMap">
+		SELECT
+		case when cr.type=1 then '充值'
+		when cr.type=12 then '转校充值'
+		when cr.type=9 then '退费营收'
+		when cr.type=10 then '订金抵扣金额'
+		when cr.type=14 then '取消团体票'
+		end as type_name,
+		ifnull(sum(cr.money),0) as money,
+		concat(round((ifnull(sum(cr.money),0)/${totalMoney})*100,2),'%') as money_scale
+		from
+		charge_record cr
+		LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+		where cr.type in (1,12,9,10,14)
+		and cr.money>0
+		<if test="schoolId != null and schoolId != ''">
+			and s.school_id in (${schoolId})
+		</if>
+		<if test="startDate != null and startDate != '' and endDate != null and endDate != ''">
+			AND DATE_FORMAT(cr.create_time ,'%Y-%m-%d') BETWEEN #{startDate}  AND #{endDate}
+		</if>
+		<if test="schoolIds != null and schoolIds.size()>0">
+			and s.SCHOOL_ID in
+			<foreach item="item" index="index" collection="schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY cr.type
+	</select>
+	<!--4.grid：营业收入-支出按类型-list-->
+	<select id="pageBusinessIncomePayByType" parameterType="Object" resultType="java.util.HashMap">
+		SELECT
+		case when cr.type=2 then '退费'
+		when cr.type=13 then '转校退费'
+		when cr.type=16 then '经纪人介绍费'
+		when cr.type=14 then '精品课购买费'
+		end as type_name,
+		abs(ifnull(sum(cr.money),0)) as money,
+		concat(abs(round((ifnull(sum(cr.money),0)/${data.totalMoney})*100,2)),'%') as money_scale,
+		0 as recharge_income,
+		0 as other_income,
+		0 as returns_pay,
+		0 as other_pay,
+		0 as business_income
+		from
+		charge_record cr
+		LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+		where cr.type in (2,13,16,14)
+		and cr.money &lt;0
+		<if test="data.schoolId != null and data.schoolId != ''">
+			and (s.school_id in (${data.schoolId}) or cr.school_id in (${data.schoolId}))
+		</if>
+		<if test="data.startDate != null and data.startDate != '' and data.endDate != null and data.endDate != ''">
+			AND DATE_FORMAT(cr.create_time ,'%Y-%m-%d') BETWEEN #{data.startDate}  AND #{data.endDate}
+		</if>
+		<if test="data.schoolIds != null and data.schoolIds.size()>0">
+			and (s.SCHOOL_ID in
+			<foreach item="item" index="index" collection="data.schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+			or cr.school_id in
+			<foreach item="item" index="index" collection="data.schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+			)
+		</if>
+		GROUP BY cr.type
+		<if test="page != null and pageSize != null and pageSize != ''">
+			LIMIT #{page},#{pageSize}
+		</if>
+	</select>
+	<!--4.grid：营业收入-支出按类型-count -->
+	<select id="pageBusinessIncomePayByTypeCount" parameterType="Object" resultType="int">
+		select count(1) from(
+		SELECT
+		cr.type
+		from
+		charge_record cr
+		LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+		where cr.type in (2,13,16,14)
+		and cr.money &lt;0
+		<if test="data.schoolId != null and data.schoolId != ''">
+			and (s.school_id in (${data.schoolId}) or cr.school_id in (${data.schoolId}))
+		</if>
+		<if test="data.startDate != null and data.startDate != '' and data.endDate != null and data.endDate != ''">
+			AND DATE_FORMAT(cr.create_time ,'%Y-%m-%d') BETWEEN #{data.startDate} AND #{data.endDate}
+		</if>
+		<if test="data.schoolIds != null and data.schoolIds.size()>0">
+			and (s.SCHOOL_ID in
+			<foreach item="item" index="index" collection="data.schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+			or cr.school_id in
+			<foreach item="item" index="index" collection="data.schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+			)
+		</if>
+		GROUP BY cr.type
+		) t
+	</select>
+	<!-- 4.title：营业收入-按照支出类型：先查询出总的支出金额-->
+	<select id="businessIncomePayByTypeCount" parameterType="Object" resultType="java.lang.Double">
+		SELECT
+		abs(ifnull(sum(cr.money),0)) as money
+		from
+		charge_record cr
+		LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+		where cr.type in (2,13,16,14)
+		and cr.money &lt;0
+		<if test="schoolId != null and schoolId != ''">
+			and (s.school_id in (${schoolId}) or cr.school_id in (${schoolId}))
+		</if>
+		<if test="startDate != null and startDate != '' and endDate != null and endDate != ''">
+			AND DATE_FORMAT(cr.create_time ,'%Y-%m-%d') BETWEEN #{startDate}  AND #{endDate}
+		</if>
+		<if test="schoolIds != null and schoolIds.size()>0">
+			and (s.SCHOOL_ID in
+			<foreach item="item" index="index" collection="schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+			or cr.school_id in
+			<foreach item="item" index="index" collection="schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+			)
+		</if>
+	</select>
+	<!--4.chart：营业收入-支出按类型-->
+	<select id="businessIncomePayByTypeChart" parameterType="Object" resultType="java.util.HashMap">
+		SELECT
+		case when cr.type=2 then '退费'
+		when cr.type=13 then '转校退费'
+		when cr.type=16 then '经纪人介绍费'
+		when cr.type=14 then '精品课购买费'
+		end as axis,
+		abs(ifnull(sum(cr.money),0)) as series
+		from
+		charge_record cr
+		LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+		where cr.type in (2,13,16,14)
+		and cr.money &lt;0
+		<if test="schoolId != null and schoolId != ''">
+			and (s.school_id in (${schoolId}) or cr.school_id in (${schoolId}))
+		</if>
+		<if test="startDate != null and startDate != '' and endDate != null and endDate != ''">
+			AND DATE_FORMAT(cr.create_time ,'%Y-%m-%d') BETWEEN #{startDate}  AND #{endDate}
+		</if>
+		<if test="schoolIds != null and schoolIds.size()>0">
+			and (s.SCHOOL_ID in
+			<foreach item="item" index="index" collection="schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+			or cr.school_id in
+			<foreach item="item" index="index" collection="schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+			)
+		</if>
+		GROUP BY cr.type
+	</select>
+	<!--4.export：营业收入-支出按类型-->
+	<select id="exportBusinessIncomePayByType" parameterType="Object" resultType="java.util.HashMap">
+		SELECT
+		case when cr.type=2 then '退费'
+		when cr.type=13 then '转校退费'
+		when cr.type=16 then '经纪人介绍费'
+		when cr.type=14 then '精品课购买费'
+		end as type_name,
+		abs(ifnull(sum(cr.money),0)) as money,
+		concat(abs(round((ifnull(sum(cr.money),0)/${totalMoney})*100,2)),'%') as money_scale
+		from
+		charge_record cr
+		LEFT JOIN student s on cr.student_id=s.STUDENT_ID
+		where cr.type in (2,13,16,14)
+		and cr.money &lt;0
+		<if test="schoolId != null and schoolId != ''">
+			and (s.school_id in (${schoolId}) or cr.school_id in (${schoolId}))
+		</if>
+		<if test="startDate != null and startDate != '' and endDate != null and endDate != ''">
+			AND DATE_FORMAT(cr.create_time ,'%Y-%m-%d') BETWEEN #{startDate}  AND #{endDate}
+		</if>
+		<if test="schoolIds != null and schoolIds.size()>0">
+			and (s.SCHOOL_ID in
+			<foreach item="item" index="index" collection="schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+			or cr.school_id in
+			<foreach item="item" index="index" collection="schoolIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+			)
+		</if>
+		GROUP BY cr.type
+	</select>
+	<!--查询营业收入总额(充值总额、退费总额）-->
+	<select id="getBusinessIncomeSumByDate" parameterType="Object" resultType="java.util.Map">
+		SELECT
+		sum(case cr.type when 1 then money WHEN 12 then money else 0 end) chargeSum,
+		sum(case cr.type when 2 then money WHEN 13 THEN money else 0 end) refoundSum
+		FROM
+		charge_record cr,student st,school sh
+		WHERE cr.type IN (1,2,12,13) and cr.student_id=st.student_id and sh.school_id = st.school_id
+		<if test="schoolId != null and schoolId != ''">
+			AND  st.school_id=#{schoolId}
+		</if>
+		<if test="schoolName != null and schoolName != ''">
+			AND  sh.SCHOOL_NAME=#{schoolName}
+		</if>
+		AND cr.`create_date` BETWEEN #{startDate}  AND #{endDate}
+		AND cr.account_type = 1
+	</select>
+
+	<!--按日期分组查询营业收入总额(充值总额-退费总额）-->
+	<select id="reportBusinessIncomeSumByDate" parameterType="Object" resultType="java.util.Map">
+		SELECT convert(IFNULL (SUM(cr.`money`),0),DECIMAL) money,DATE_FORMAT(cr.`create_date`,'%Y-%m-%d') createDate FROM `charge_record` cr,student st
+		WHERE cr.`type` IN(1,2) AND st.`SCHOOL_ID`=#{schoolId} AND cr.`student_id`=st.`STUDENT_ID`
+		AND cr.`create_date` BETWEEN #{startDate}  AND #{endDate}
+		GROUP BY DATE_FORMAT(cr.`create_date`,'%Y-%m-%d')
+		ORDER BY createDate
+
+	</select>
+
+	<!--按月份分组查询营业收入总额(充值总额-退费总额）-->
+	<select id="reportBusinessIncomeSumByMonth" parameterType="Object" resultType="java.util.Map">
+		SELECT convert(IFNULL (SUM(cr.money),0),DECIMAL) money ,DATE_FORMAT(cr.`create_date`,'%Y-%m') createDate FROM `charge_record` cr,student st
+		WHERE cr.`type` IN(1,2) AND st.`SCHOOL_ID`=#{schoolId} AND cr.`student_id`=st.`STUDENT_ID`
+		AND cr.`create_date` BETWEEN #{startDate}  AND #{endDate}
+		GROUP BY DATE_FORMAT(cr.`create_date`,'%Y-%m')
+		ORDER BY createDate
+
+	</select>
+
+
+
+	<!-- 查询充值到账审核数量-->
+	<select id="pageRechargeAccountAuditCount" parameterType="Object" resultType="java.lang.Long">
+		SELECT
+		count(1)
+		FROM
+		charge_record cr
+		LEFT JOIN student s ON cr.student_id = s.STUDENT_ID
+		LEFT JOIN school sc ON s.school_id = sc.school_id
+		where cr.type=1
+		and cr.charge_state=0
+		<include refid="pageRechargeAccountAudit_where"/>
+	</select>
+
+	<!--查询充值到账审核数据-->
+	<select id="pageRechargeAccountAuditList" parameterType="Object" resultType="java.util.HashMap">
+		SELECT
+		bb.charge_id,
+		bb.create_time,
+		bb.create_date,
+		bb.pay_type,
+		bb.money,
+		bb.student_name,
+		bb.school_name,
+		bb.account_state,
+		bb.account_state_name,
+		bb.pay_type1,
+		bb.refund_remark,
+		GROUP_CONCAT(bb.dt_amount) as  dt_amount,
+		IFNULL(GROUP_CONCAT(bb.ditui_type),'') as ditui_type,
+		IFNULL(GROUP_CONCAT(bb.agent_name),'') as agent_name,
+		GROUP_CONCAT(bb.contact) as contact,
+		GROUP_CONCAT(bb.ticket_num) as ticket_num
+		FROM
+		(
+		SELECT
+		cr.charge_id,
+		DATE_FORMAT(cr.create_time,'%Y-%m-%d %H:%i:%s') AS create_time,
+		DATE_FORMAT(cr.create_date,'%Y-%m-%d %H:%i:%s') AS create_date,
+		cr.pay_type,
+		cr.money,
+		IFNULL(d.amount,0) AS dt_amount,
+		(SELECT tl.`value` FROM tpl_lookup_item tl WHERE tl.`name` = 'DITUI_TYPE' AND tl.`key` = d.type) as ditui_type,
+		IFNULL(d.agent_name,'') as agent_name,
+		IFNULL(u.CONTACT,'') as contact,
+		IFNULL(cr.ticket_num,'') as ticket_num,
+		s.student_name,
+		sc.school_name,
+		IFNULL(cr.refund_remark,'') as refund_remark,
+		cr.`into_account_state` as account_state,
+		(SELECT tl.`value` FROM tpl_lookup_item tl WHERE tl.`name` = 'ACCOUNT_STATE' AND tl.`key` = cr.`into_account_state`) as account_state_name,
+		(SELECT tl.`value` FROM tpl_lookup_item tl WHERE tl.`name` = 'PAY_TYPE' AND tl.`key` = cr.pay_type) as pay_type1
+		FROM charge_record cr
+		LEFT JOIN student s ON cr.student_id = s.STUDENT_ID
+		LEFT JOIN school sc ON s.school_id = sc.school_id
+		LEFT JOIN di_tuidjj d ON cr.charge_id = d.charge_id
+		LEFT JOIN `user` u on d.ku_name = u.ku_name
+		WHERE cr.type = 1 AND cr.charge_state = 0
+		<include refid="pageRechargeAccountAudit_where"/>
+		) bb GROUP BY charge_id order by account_state asc,create_date desc
+		<if test="page != null and pageSize != null">
+			LIMIT ${page},${pageSize}
+		</if>
+	</select>
+
+	<!--查询充值到账审核数据-充值总额-->
+	<select id="rechargeAccountAudit" parameterType="Object" resultType="java.util.HashMap">
+		SELECT
+		FORMAT(ifnull(sum(cr.money),0),2) as money,
+		FORMAT(ifnull((SELECT sum(cr.money)
+		from
+		charge_record cr
+		LEFT JOIN student s ON cr.student_id = s.STUDENT_ID
+		LEFT JOIN school sc ON s.school_id = sc.school_id
+		where cr.type = 1
+		AND cr.charge_state = 0
+		<include refid="pageRechargeAccountAudit_where"/>
+		),0),2) as totalMoney,
+		round(ifnull((sum(cr.money)/(SELECT sum(cr.money)
+		from charge_record cr
+		LEFT JOIN student s ON cr.student_id = s.STUDENT_ID
+		LEFT JOIN school sc ON s.school_id = sc.school_id
+		where cr.type = 1
+		AND cr.charge_state = 0
+		<include refid="pageRechargeAccountAudit_where"/>
+		)),0),4)*100 as percent
+		FROM
+		charge_record cr
+		LEFT JOIN student s ON cr.student_id = s.STUDENT_ID
+		LEFT JOIN school sc ON s.school_id = sc.school_id
+		WHERE
+		cr.type = 1
+		AND cr.charge_state = 0
+		and cr.into_account_state =${into_account_state}
+		<include refid="pageRechargeAccountAudit_where"/>
+	</select>
+	<!--教学点充值已或未到账报表-->
+	<select id="schoolIntoAccountChart" parameterType="Object" resultType="java.util.HashMap">
+		SELECT
+		concat(sc.school_short_name,'(¥',FORMAT(ifnull(sum(cr.money),0),2),')') as schoolName,
+		FORMAT(ifnull(sum(cr.money),0),2) as money,
+		round(ifnull((sum(cr.money)/(SELECT sum(cr.money)
+		from charge_record cr
+		LEFT JOIN student s ON cr.student_id = s.STUDENT_ID
+		LEFT JOIN school sc ON s.school_id = sc.school_id
+		where cr.type = 1
+		AND cr.charge_state = 0
+		and cr.into_account_state =${into_account_state}
+		<include refid="pageRechargeAccountAudit_where"/>
+		)),0),4)*100 as percent
+		FROM
+		charge_record cr
+		LEFT JOIN student s ON cr.student_id = s.STUDENT_ID
+		LEFT JOIN school sc ON s.school_id = sc.school_id
+		WHERE
+		cr.type = 1
+		AND cr.charge_state = 0
+		and cr.into_account_state =${into_account_state}
+		<include refid="pageRechargeAccountAudit_where"/>
+		GROUP BY sc.school_id
+		ORDER BY money DESC
+	</select>
+	<!--支付渠道已或未到账报表-->
+	<select id="payIntoAccountChart" parameterType="Object" resultType="java.util.HashMap">
+		SELECT
+		case when cr.pay_type=1 then '现金支付'
+		when cr.pay_type=2 then '微信支付'
+		when cr.pay_type=3 then '支付宝支付'
+		else '其他'
+		end as payType,
+		count(cr.charge_id) as num,
+		round(count(cr.charge_id)/(SELECT count(cr.charge_id)
+		from charge_record cr
+		LEFT JOIN student s ON cr.student_id = s.STUDENT_ID
+		LEFT JOIN school sc ON s.school_id = sc.school_id
+		where cr.type = 1
+		AND cr.charge_state = 0
+		and cr.into_account_state=${into_account_state}
+		<include refid="pageRechargeAccountAudit_where"/>
+		),4)*100 as percent
+		FROM
+		charge_record cr
+		LEFT JOIN student s ON cr.student_id = s.STUDENT_ID
+		LEFT JOIN school sc ON s.school_id = sc.school_id
+		WHERE
+		cr.type = 1
+		AND cr.charge_state = 0
+		and cr.into_account_state =${into_account_state}
+		<include refid="pageRechargeAccountAudit_where"/>
+		GROUP BY cr.pay_type
+	</select>
+	<sql id="pageRechargeAccountAudit_where">
+		<trim suffixOverrides=",">
+			<if test="studentName != null and studentName != ''">
+				and s.student_name like concat('%',trim('${studentName}'),'%')
+			</if>
+			<if test="schoolName != null and schoolName != ''">
+				and sc.school_name like concat('%',trim('${schoolName}'),'%')
+			</if>
+			<if test="schoolId != null and schoolId != '' and schoolId != '-1'">
+				and s.school_id =#{schoolId}
+			</if>
+			<if test="intoAccountState != null and intoAccountState != '' and intoAccountState != '-1'">
+				and cr.into_account_state=#{intoAccountState}
+			</if>
+			<if test="payType != null">
+				and cr.pay_type=#{payType}
+			</if>
+			<if test="startDate != null and startDate != ''">
+				and cr.create_date &gt;= #{startDate}
+			</if>
+			<if test="schoolIds != null">
+				and s.school_id in
+				<foreach collection="schoolIds"  item="item" index="index" open="(" separator="," close=")">
+					#{item}
+				</foreach>
+			</if>
+			<if test="endDate != null and endDate != ''">
+				and cr.create_date &lt;= #{endDate}
+			</if>
+		</trim>
+	</sql>
+	<!--修改充值到账状态-->
+	<update id="updateIntoAccountState" parameterType="Object">
+		UPDATE charge_record
+		<set>
+			into_account_state =1
+		</set>
+		WHERE charge_id = #{chargeId}
+	</update>
+
+	<select id="getRefundCount" parameterType="Object" resultType="java.lang.Double">
+		SELECT
+		SUM(ABS(cr.`money`)) AS money
+		FROM
+		`charge_record` cr ,student s,school sl
+		WHERE  cr.account_type = 1
+		AND cr.student_id = s.student_id
+		AND s.school_id = sl.school_id
+		AND cr.`type` = 2
+		<if test="schoolName != null and schoolName != ''">
+			AND sl.school_name like CONCAT('%','${schoolName}','%')
+		</if>
+		<if test="startDate != null and startDate != ''">
+			AND cr.create_date &gt;= #{startDate}
+		</if>
+		<if test="endDate != null and endDate != ''">
+			AND cr.create_date &lt;= DATE_ADD(#{endDate},INTERVAL 1 DAY)
+		</if>
+		<if test="schoolId != null and schoolId != ''">
+			AND  sl.school_id = #{schoolId}
+		</if>
+		<if test="schoolIds!=null and schoolIds.size()>0">
+			and s.school_id in
+			<foreach collection="schoolIds" index="index" item="item" open="(" separator="," close=")">
+				trim(#{item})
+			</foreach>
+		</if>
+	</select>
+
+
+	<select id="getRefundSchoolList" parameterType="Object" resultType="java.util.HashMap">
+		SELECT
+		sl.school_id AS schoolId,
+		sl.school_name AS schoolName,
+		SUM(ABS(cr.money)) money,
+		(SUM(ABS(cr.money))/${totalMoney})*100 ratioNum
+		FROM
+		charge_record cr,student s,school sl,study_grade sg
+		WHERE  cr.account_type = 1
+		AND cr.student_id = s.student_id
+		AND s.school_id = sl.school_id
+		AND s.grade = sg.grade_id
+		AND cr.`type` = 2
+		<if test="studentName != null and studentName != ''">
+			AND s.student_name like CONCAT('%','${studentName}','%')
+		</if>
+		<if test="schoolName != null and schoolName != ''">
+			AND sl.school_name like CONCAT('%','${schoolName}','%')
+		</if>
+		<if test="gradeName != null and gradeName != ''">
+			AND sg.grade_name like CONCAT('%','${gradeName}','%')
+		</if>
+		<if test="startDate != null and startDate != ''">
+			AND cr.create_date &gt;= #{startDate}
+		</if>
+		<if test="endDate != null and endDate != ''">
+			AND cr.create_date &lt;= DATE_ADD(#{endDate},INTERVAL 1 DAY)
+		</if>
+		<if test="schoolIds!=null and schoolIds.size()>0">
+			and s.school_id in
+			<foreach collection="schoolIds" index="index" item="item" open="(" separator="," close=")">
+				trim(#{item})
+			</foreach>
+		</if>
+		GROUP BY sl.school_id
+	</select>
+
+	<select id="getRefundSectionList" parameterType="Object" resultType="java.util.HashMap">
+		SELECT
+		ss.section_id sectionId,
+		ss.section_name sectionName,
+		SUM(ABS(cr.money)) money,
+		(SUM(ABS(cr.money))/${totalMoney})*100 ratioNum
+		FROM charge_record cr,student s,study_grade sg,study_section ss,school sh
+		WHERE  cr.account_type = 1
+		AND cr.student_id = s.student_id
+		AND s.grade = sg.grade_id
+		AND sg.section_id = ss.section_id
+		AND s.school_id = sh.school_id
+		AND cr.`type` = 2
+		<if test="studentName != null and studentName != ''">
+			AND s.student_name like CONCAT('%','${studentName}','%')
+		</if>
+		<if test="schoolName != null and schoolName != ''">
+			AND sh.school_name like CONCAT('%','${schoolName}','%')
+		</if>
+		<if test="gradeName != null and gradeName != ''">
+			AND sg.grade_name like CONCAT('%','${gradeName}','%')
+		</if>
+		<if test="startDate != null and startDate != ''">
+			AND cr.create_date &gt;= #{startDate}
+		</if>
+		<if test="endDate != null and endDate != ''">
+			AND cr.create_date &lt;= DATE_ADD(#{endDate},INTERVAL 1 DAY)
+		</if>
+		<if test="schoolIds!=null and schoolIds.size()>0">
+			and s.school_id in
+			<foreach collection="schoolIds" index="index" item="item" open="(" separator="," close=")">
+				trim(#{item})
+			</foreach>
+		</if>
+		GROUP BY ss.section_id
+	</select>
+
+	<select id="getBusinessIncomeList" parameterType="Object" resultType="java.util.HashMap">
+		SELECT
+		a.schoolId,
+		a.schoolName,
+		a.chargeSum,
+		a.refoundSum,
+		a.netIncome,
+		a.schoolShortName,
+		ROUND(A.netIncomeRatioNum,4) AS netIncomeRatioNum
+		FROM(
+		SELECT
+		IFNULL(c.`SCHOOL_ID`,A.SCHOOL_ID) AS schoolId,
+		IFNULL(c.`SCHOOL_NAME`,c1.`SCHOOL_NAME`) AS schoolName,
+		c.school_short_name as schoolShortName,
+		SUM(CASE A.type WHEN 1 THEN A.money ELSE 0 END) chargeSum,
+		SUM(CASE A.type WHEN 2 THEN A.money ELSE 0 END) refoundSum,
+		SUM(CASE WHEN A.type IN(1,2,14) THEN A.money ELSE 0 END) netIncome,
+		(SUM(CASE WHEN A.type IN(1,2,14) THEN A.money ELSE 0 END)/D.netIncome) * 100 AS netIncomeRatioNum
+		FROM  `charge_record` A
+		LEFT JOIN `student` B ON A.`student_id` = B.`STUDENT_ID`
+		LEFT JOIN `school` C ON B.`SCHOOL_ID` = C.`SCHOOL_ID`
+		LEFT JOIN `school` C1 ON A.`SCHOOL_ID` = C1.`SCHOOL_ID`
+		LEFT JOIN (
+		SELECT SUM(CASE WHEN A.type IN(1,2,14) THEN A.money ELSE 0 END) netIncome
+		FROM `charge_record` A
+		LEFT JOIN `student` B ON A.`student_id` = B.`STUDENT_ID`
+		WHERE  A.account_type != 2
+		<if test="startDate != null and startDate != ''">
+			AND A.create_date &gt;= #{startDate}
+		</if>
+		<if test="endDate != null and endDate != ''">
+			AND A.create_date &lt; DATE_ADD(#{endDate},INTERVAL 1 DAY)
+		</if>
+		<if test="schoolId != null and schoolId != ''">
+			AND  IFNULL(b.school_id,a.school_id) = #{schoolId}
+		</if>
+		<if test="studentName != null and studentName != ''">
+			AND  b.STUDENT_NAME LIKE CONCAT('%','${studentName}','%')
+		</if>
+		) D ON 1=1
+		WHERE  A.account_type != 2
+		<if test="startDate != null and startDate != ''">
+			AND A.create_date &gt;= #{startDate}
+		</if>
+		<if test="endDate != null and endDate != ''">
+			AND A.create_date &lt; DATE_ADD(#{endDate},INTERVAL 1 DAY)
+		</if>
+		<if test="schoolId != null and schoolId != ''">
+			AND  IFNULL(b.school_id,a.school_id) = #{schoolId}
+		</if>
+		<if test="studentName != null and studentName != ''">
+			AND  b.STUDENT_NAME LIKE CONCAT('%','${studentName}','%')
+		</if>
+		GROUP BY IFNULL(c.`SCHOOL_ID`,A.SCHOOL_ID)) A where  A.netIncome != 0
+	</select>
+	<!--充值未审核数量-->
+	<select id="intoAccountStateCount" parameterType="Object" resultType="java.lang.Long">
+		SELECT
+		count(1)
+		FROM
+		charge_record cr,
+		student s,
+		school sc
+		where cr.type=1
+		and cr.student_id = s.STUDENT_ID
+		and s.school_id = sc.school_id
+		and cr.charge_state=0
+		and cr.into_account_state=0
+		<include refid="pageRechargeAccountAudit_where"/>
+	</select>
+
+	<select id="getSchoolByTypeSum" parameterType="Object" resultType="java.lang.Double">
+		SELECT
+		IFNULL(SUM(cr.money),0)
+		FROM charge_record cr
+		LEFT JOIN  student s
+		ON  cr.student_id = s.student_id
+		WHERE 1=1
+		<if test="type != null and type != ''">
+			AND  cr.type = #{type}
+		</if>
+		<if test="schoolId != null and schoolId != ''">
+			AND  s.SCHOOL_ID = #{schoolId}
+		</if>
+		<if test="studentId != null and studentId != ''">
+			AND  s.student_id = #{studentId}
+		</if>
+	</select>
+
+	<!-- CS端根据老师查询课酬报表 -->
+	<select id="formulaSchoolTeacherChart" parameterType="Object" resultType="java.util.HashMap">
+		SELECT
+		bb1.teacherId,
+		bb1.teacherName,
+		bb1.rewardMoney,
+		IFNULL(bb2.monthRewardMoney1, 0) AS monthRewardMoney1,
+		IFNULL(bb2.monthRewardMoney2, 0) AS monthRewardMoney2,
+		(IFNULL(bb2.monthRewardMoney1, 0) + IFNULL(bb2.monthRewardMoney2, 0) + IFNULL(bb1.rewardMoney, 0)) AS rewardMoneyTotal
+		FROM(
+		SELECT
+		bb.TEACHER_ID AS teacherId,
+		SUM(bb.reward_money) AS rewardMoney,
+		bb.teacher_name as teacherName
+		FROM(
+		SELECT
+		tr.tr_id,
+		t.TEACHER_ID,
+		t.teacher_name,
+		tr.reward_money
+		FROM teacher_reward tr
+		LEFT JOIN student_curriculum sc ON tr.curc_id = sc.CURC_ID
+		LEFT JOIN curriculum c ON sc.CURC_ID = c.CURC_ID
+		LEFT JOIN teacher t ON tr.teacher_id = t.TEACHER_ID
+		LEFT JOIN school s ON t.SCHOOL_ID = s.SCHOOL_ID
+		LEFT JOIN teach_class tc ON c.CLASS_ID = tc.CLASS_ID
+		WHERE tr.teach_method != 2
+		AND c.is_calculation = 1
+		AND c.curriculum_date BETWEEN #{startDate} AND #{endDate}
+		<if test="schoolIds!=null">
+			AND s.SCHOOL_ID in
+			<foreach collection="schoolIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="teacherIds!=null">
+			AND t.TEACHER_ID in
+			<foreach collection="teacherIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="subjectIds!=null">
+			AND c.teacher_subject_id in
+			<foreach collection="subjectIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="sectionIds!=null">
+			AND c.teacher_section_id in
+			<foreach collection="sectionIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="classIds!=null">
+			AND tc.CLASS_ID in
+			<foreach collection="classIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="courseIds!=null">
+			AND tc.COURSE_ID in
+			<foreach collection="courseIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="gradeIds!=null">
+			AND tc.NIAN_JIS_ID in
+			<foreach collection="gradeIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY tr.tr_id
+		UNION
+		SELECT
+		tr.tr_id,
+		t.TEACHER_ID,
+		t.teacher_name,
+		tr.reward_money
+		FROM teacher_reward tr
+		LEFT JOIN student_curriculum sc ON tr.curc_id = sc.CURC_ID
+		LEFT JOIN month_curriculum mc ON sc.MCC_ID = mc.MCC_ID
+		LEFT JOIN curriculum c ON sc.CURC_ID = c.CURC_ID
+		LEFT JOIN teacher t ON tr.teacher_id = t.TEACHER_ID
+		LEFT JOIN school s ON t.SCHOOL_ID = s.SCHOOL_ID
+		LEFT JOIN t_month_teacher_subject mts ON mc.MCC_ID = mts.mcc_id
+		AND tr.teacher_id = mts.teacher_id
+		LEFT JOIN teach_class tc ON mc.CLASS_ID = tc.CLASS_ID
+		LEFT JOIN course_grade cg ON tc.COURSE_ID = cg.COURSE_ID
+		WHERE tr.teach_method = 2
+		AND tr.teacher_type = 0
+		AND c.is_calculation = 1
+		AND c.curriculum_date BETWEEN #{startDate} AND #{endDate}
+		<if test="schoolIds!=null">
+			AND s.SCHOOL_ID in
+			<foreach collection="schoolIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="teacherIds!=null">
+			AND t.TEACHER_ID in
+			<foreach collection="teacherIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="courseIds!=null">
+			AND tc.COURSE_ID in
+			<foreach collection="courseIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="subjectIds!=null">
+			AND mts.subject_id in
+			<foreach collection="subjectIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="sectionIds!=null">
+			AND mc.teacher_section_id in
+			<foreach collection="sectionIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="classIds!=null">
+			AND tc.CLASS_ID in
+			<foreach collection="classIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="gradeIds!=null">
+			AND cg.grade_id in
+			<foreach collection="gradeIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY tr.tr_id
+		UNION
+		SELECT
+		tr.tr_id,
+		t.TEACHER_ID,
+		t.teacher_name,
+		tr.reward_money
+		FROM teacher_reward tr
+		LEFT JOIN student_curriculum sc ON tr.curc_id = sc.CURC_ID
+		LEFT JOIN month_curriculum mc ON sc.MCC_ID = mc.MCC_ID
+		LEFT JOIN curriculum c ON sc.CURC_ID = c.CURC_ID
+		LEFT JOIN teacher t ON tr.teacher_id = t.TEACHER_ID
+		LEFT JOIN school s ON t.SCHOOL_ID = s.SCHOOL_ID
+		LEFT JOIN teach_class tc ON mc.CLASS_ID = tc.CLASS_ID
+		LEFT JOIN course_grade cg ON tc.COURSE_ID = cg.COURSE_ID
+		WHERE tr.teach_method = 2
+		AND tr.teacher_type = 1
+		AND c.is_calculation = 1
+		AND c.curriculum_date BETWEEN #{startDate} AND #{endDate}
+		<if test="schoolIds!=null">
+			AND s.SCHOOL_ID in
+			<foreach collection="schoolIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="teacherIds!=null">
+			AND t.TEACHER_ID in
+			<foreach collection="teacherIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="courseIds!=null">
+			AND tc.COURSE_ID in
+			<foreach collection="courseIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="subjectIds!=null">
+			AND mc.assist_subject_id in
+			<foreach collection="subjectIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="sectionIds!=null">
+			AND mc.teacher_section_id in
+			<foreach collection="sectionIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="classIds!=null">
+			AND tc.CLASS_ID in
+			<foreach collection="classIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="gradeIds!=null">
+			AND cg.grade_id in
+			<foreach collection="gradeIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY tr.tr_id
+		) bb
+		GROUP BY bb.TEACHER_ID
+		) bb1
+		LEFT JOIN (
+		SELECT
+		aa.teacher_id AS teacherId,
+		SUM(aa.monthRewardMoney1) AS monthRewardMoney1,
+		SUM(aa.monthRewardMoney2) AS monthRewardMoney2
+		FROM
+		(
+		SELECT
+		tmr.tmr_id,
+		tmr.teacher_id,
+		IF (tmr.reward_type = 0,tmr.reward_money,0) monthRewardMoney1,
+		IF (tmr.reward_type = 1,tmr.reward_money,0) monthRewardMoney2
+		FROM teacher_month_reward tmr
+		LEFT JOIN teacher t on tmr.teacher_id = t.TEACHER_ID
+		WHERE tmr.`year_month` &gt;= #{startMonth} AND tmr.`year_month` &lt;= #{endMonth}
+		<if test="teacherIds!=null">
+			AND tmr.TEACHER_ID in
+			<foreach collection="teacherIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="schoolIds!=null">
+			AND t.SCHOOL_ID in
+			<foreach collection="schoolIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY tmr.tmr_id
+		) aa GROUP BY	aa.teacher_id
+		) bb2 ON bb1.teacherId = bb2.teacherId
+
+		UNION
+
+		SELECT
+		bb1.teacherId,
+		bb1.teacherName,
+		IFNULL(bb2.rewardMoney,0) as rewardMoney,
+		IFNULL(bb1.monthRewardMoney1, 0) AS monthRewardMoney1,
+		IFNULL(bb1.monthRewardMoney2, 0) AS monthRewardMoney2,
+		(IFNULL(bb1.monthRewardMoney1, 0) + IFNULL(bb1.monthRewardMoney2, 0) + IFNULL(bb2.rewardMoney, 0)) AS rewardMoneyTotal
+		FROM(
+		SELECT
+		aa.teacherId,
+		aa.teacherName,
+		SUM(aa.monthRewardMoney1) AS monthRewardMoney1,
+		SUM(aa.monthRewardMoney2) AS monthRewardMoney2
+		FROM(
+		SELECT
+		tmr.tmr_id,
+		tmr.teacher_id AS teacherId,
+		t.teacher_name as teacherName,
+		IF (tmr.reward_type = 0,tmr.reward_money,0) monthRewardMoney1,
+		IF (tmr.reward_type = 1,tmr.reward_money,0) monthRewardMoney2
+		FROM teacher_month_reward tmr
+		LEFT JOIN teacher t on tmr.teacher_id = t.TEACHER_ID
+		WHERE tmr.`year_month` &gt;= #{startMonth} AND tmr.`year_month` &lt;= #{endMonth}
+		<if test="teacherIds!=null">
+			AND tmr.TEACHER_ID in
+			<foreach collection="teacherIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="schoolIds!=null">
+			AND t.SCHOOL_ID in
+			<foreach collection="schoolIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY tmr.tmr_id
+		) aa GROUP BY aa.teacherId
+		) bb1
+		LEFT JOIN (
+		SELECT
+		bb.TEACHER_ID AS teacherId,
+		SUM(bb.reward_money) AS rewardMoney
+		FROM(
+		SELECT
+		tr.tr_id,
+		t.TEACHER_ID,
+		tr.reward_money
+		FROM teacher_reward tr
+		LEFT JOIN student_curriculum sc ON tr.curc_id = sc.CURC_ID
+		LEFT JOIN curriculum c ON sc.CURC_ID = c.CURC_ID
+		LEFT JOIN teacher t ON tr.teacher_id = t.TEACHER_ID
+		LEFT JOIN school s ON t.SCHOOL_ID = s.SCHOOL_ID
+		LEFT JOIN teach_class tc ON c.CLASS_ID = tc.CLASS_ID
+		WHERE tr.teach_method != 2
+		AND c.is_calculation = 1
+		AND c.curriculum_date BETWEEN #{startDate} AND #{endDate}
+		<if test="schoolIds!=null">
+			AND s.SCHOOL_ID in
+			<foreach collection="schoolIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="teacherIds!=null">
+			AND t.TEACHER_ID in
+			<foreach collection="teacherIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="subjectIds!=null">
+			AND c.teacher_subject_id in
+			<foreach collection="subjectIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="sectionIds!=null">
+			AND c.teacher_section_id in
+			<foreach collection="sectionIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="classIds!=null">
+			AND tc.CLASS_ID in
+			<foreach collection="classIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="courseIds!=null">
+			AND tc.COURSE_ID in
+			<foreach collection="courseIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="gradeIds!=null">
+			AND tc.NIAN_JIS_ID in
+			<foreach collection="gradeIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY tr.tr_id
+		UNION
+		SELECT
+		tr.tr_id,
+		t.TEACHER_ID,
+		tr.reward_money
+		FROM teacher_reward tr
+		LEFT JOIN student_curriculum sc ON tr.curc_id = sc.CURC_ID
+		LEFT JOIN month_curriculum mc ON sc.MCC_ID = mc.MCC_ID
+		LEFT JOIN curriculum c ON sc.CURC_ID = c.CURC_ID
+		LEFT JOIN teacher t ON tr.teacher_id = t.TEACHER_ID
+		LEFT JOIN school s ON t.SCHOOL_ID = s.SCHOOL_ID
+		LEFT JOIN t_month_teacher_subject mts ON mc.MCC_ID = mts.mcc_id
+		AND tr.teacher_id = mts.teacher_id
+		LEFT JOIN teach_class tc ON mc.CLASS_ID = tc.CLASS_ID
+		LEFT JOIN course_grade cg ON tc.COURSE_ID = cg.COURSE_ID
+		WHERE tr.teach_method = 2
+		AND tr.teacher_type = 0
+		AND c.is_calculation = 1
+		AND c.curriculum_date BETWEEN #{startDate} AND #{endDate}
+		<if test="schoolIds!=null">
+			AND s.SCHOOL_ID in
+			<foreach collection="schoolIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="teacherIds!=null">
+			AND t.TEACHER_ID in
+			<foreach collection="teacherIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="courseIds!=null">
+			AND tc.COURSE_ID in
+			<foreach collection="courseIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="subjectIds!=null">
+			AND mts.subject_id in
+			<foreach collection="subjectIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="sectionIds!=null">
+			AND mc.teacher_section_id in
+			<foreach collection="sectionIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="classIds!=null">
+			AND tc.CLASS_ID in
+			<foreach collection="classIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="gradeIds!=null">
+			AND cg.grade_id in
+			<foreach collection="gradeIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY tr.tr_id
+		UNION
+		SELECT
+		tr.tr_id,
+		t.TEACHER_ID,
+		tr.reward_money
+		FROM teacher_reward tr
+		LEFT JOIN student_curriculum sc ON tr.curc_id = sc.CURC_ID
+		LEFT JOIN month_curriculum mc ON sc.MCC_ID = mc.MCC_ID
+		LEFT JOIN curriculum c ON sc.CURC_ID = c.CURC_ID
+		LEFT JOIN teacher t ON tr.teacher_id = t.TEACHER_ID
+		LEFT JOIN school s ON t.SCHOOL_ID = s.SCHOOL_ID
+		LEFT JOIN teach_class tc ON mc.CLASS_ID = tc.CLASS_ID
+		LEFT JOIN course_grade cg ON tc.COURSE_ID = cg.COURSE_ID
+		WHERE tr.teach_method = 2
+		AND tr.teacher_type = 1
+		AND c.is_calculation = 1
+		AND c.curriculum_date BETWEEN #{startDate} AND #{endDate}
+		<if test="schoolIds!=null">
+			AND s.SCHOOL_ID in
+			<foreach collection="schoolIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="teacherIds!=null">
+			AND t.TEACHER_ID in
+			<foreach collection="teacherIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="courseIds!=null">
+			AND tc.COURSE_ID in
+			<foreach collection="courseIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="subjectIds!=null">
+			AND mc.assist_subject_id in
+			<foreach collection="subjectIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="sectionIds!=null">
+			AND mc.teacher_section_id in
+			<foreach collection="sectionIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="classIds!=null">
+			AND tc.CLASS_ID in
+			<foreach collection="classIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="gradeIds!=null">
+			AND cg.grade_id in
+			<foreach collection="gradeIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY tr.tr_id
+		) bb
+		GROUP BY bb.TEACHER_ID
+		) bb2 ON bb1.teacherId = bb2.teacherId
+		ORDER BY rewardMoneyTotal DESC
+
+	</select>
+
+	<!-- BS端根据老师用户查询总课酬报表 -->
+	<select id="formulaIncomeTeacherChart" parameterType="Object" resultType="java.util.HashMap">
+
+		SELECT bb4.*
+		FROM(
+		SELECT
+		bb1.teacherId,
+		bb1.rewardMoney,
+		bb1.teacherName,
+		bb1.contact,
+		IFNULL(bb2.monthRewardMoney1,0) as monthRewardMoney1,
+		IFNULL(bb2.monthRewardMoney2,0) as monthRewardMoney2,
+		(IFNULL(bb2.monthRewardMoney1,0)+IFNULL(bb2.monthRewardMoney2,0)+IFNULL(bb1.rewardMoney,0)) AS rewardMoneyTotal
+		FROM
+		(
+		SELECT
+		bb.USER_ID as teacherId,
+		SUM(bb.reward_money) AS rewardMoney,
+		u.REAL_NAME as teacherName,
+		u.CONTACT as contact
+		FROM
+		(
+		SELECT
+		tr.tr_id,
+		t.USER_ID,
+		tr.reward_money
+		FROM teacher_reward tr
+		LEFT JOIN student_curriculum sc on tr.curc_id = sc.CURC_ID
+		LEFT JOIN curriculum c on sc.CURC_ID = c.CURC_ID
+		LEFT JOIN teacher t on tr.teacher_id = t.TEACHER_ID
+		LEFT JOIN school s on t.SCHOOL_ID = s.SCHOOL_ID
+		LEFT JOIN teach_class tc on c.CLASS_ID = tc.CLASS_ID
+		WHERE tr.teach_method != 2
+		AND c.is_calculation = 1
+		AND c.curriculum_date BETWEEN #{startDate} AND #{endDate}
+		<if test="schoolIds!=null">
+			AND s.SCHOOL_ID in
+			<foreach collection="schoolIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="teacherIds!=null">
+			AND t.TEACHER_ID in
+			<foreach collection="teacherIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="subjectIds!=null">
+			AND c.teacher_subject_id in
+			<foreach collection="subjectIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="sectionIds!=null">
+			AND c.teacher_section_id in
+			<foreach collection="sectionIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="classIds!=null">
+			AND tc.CLASS_ID in
+			<foreach collection="classIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="courseIds!=null">
+			AND tc.COURSE_ID in
+			<foreach collection="courseIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="gradeIds!=null">
+			AND tc.NIAN_JIS_ID in
+			<foreach collection="gradeIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY tr.tr_id
+		UNION
+		SELECT
+		tr.tr_id,
+		t.USER_ID,
+		tr.reward_money
+		FROM teacher_reward tr
+		LEFT JOIN student_curriculum sc on tr.curc_id = sc.CURC_ID
+		LEFT JOIN month_curriculum mc on sc.MCC_ID = mc.MCC_ID
+		LEFT JOIN curriculum c on sc.CURC_ID = c.CURC_ID
+		LEFT JOIN teacher t on tr.teacher_id = t.TEACHER_ID
+		LEFT JOIN school s on t.SCHOOL_ID = s.SCHOOL_ID
+		LEFT JOIN t_month_teacher_subject mts on mc.MCC_ID = mts.mcc_id AND tr.teacher_id = mts.teacher_id
+		LEFT JOIN teach_class tc on mc.CLASS_ID = tc.CLASS_ID
+		LEFT JOIN course_grade cg on tc.COURSE_ID = cg.COURSE_ID
+		WHERE tr.teach_method = 2
+		AND tr.teacher_type = 0
+		AND c.is_calculation = 1
+		AND c.curriculum_date BETWEEN #{startDate} AND #{endDate}
+		<if test="schoolIds!=null">
+			AND s.SCHOOL_ID in
+			<foreach collection="schoolIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="teacherIds!=null">
+			AND t.TEACHER_ID in
+			<foreach collection="teacherIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="courseIds!=null">
+			AND tc.COURSE_ID in
+			<foreach collection="courseIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="subjectIds!=null">
+			AND mts.subject_id in
+			<foreach collection="subjectIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="sectionIds!=null">
+			AND mc.teacher_section_id in
+			<foreach collection="sectionIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="classIds!=null">
+			AND tc.CLASS_ID in
+			<foreach collection="classIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="gradeIds!=null">
+			AND cg.grade_id in
+			<foreach collection="gradeIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY tr.tr_id
+		UNION
+		SELECT
+		tr.tr_id,
+		t.USER_ID,
+		tr.reward_money
+		FROM teacher_reward tr
+		LEFT JOIN student_curriculum sc on tr.curc_id = sc.CURC_ID
+		LEFT JOIN month_curriculum mc on sc.MCC_ID = mc.MCC_ID
+		LEFT JOIN curriculum c on sc.CURC_ID = c.CURC_ID
+		LEFT JOIN teacher t on tr.teacher_id = t.TEACHER_ID
+		LEFT JOIN school s on t.SCHOOL_ID = s.SCHOOL_ID
+		LEFT JOIN teach_class tc on mc.CLASS_ID = tc.CLASS_ID
+		LEFT JOIN course_grade cg on tc.COURSE_ID = cg.COURSE_ID
+		WHERE tr.teach_method = 2
+		AND tr.teacher_type = 1
+		AND c.is_calculation = 1
+		AND c.curriculum_date BETWEEN #{startDate} AND #{endDate}
+		<if test="schoolIds!=null">
+			AND s.SCHOOL_ID in
+			<foreach collection="schoolIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="teacherIds!=null">
+			AND t.TEACHER_ID in
+			<foreach collection="teacherIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="classIds!=null">
+			AND tc.CLASS_ID in
+			<foreach collection="classIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="courseIds!=null">
+			AND tc.COURSE_ID in
+			<foreach collection="courseIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="subjectIds!=null">
+			AND mc.assist_subject_id in
+			<foreach collection="subjectIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="sectionIds!=null">
+			AND mc.teacher_section_id in
+			<foreach collection="sectionIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="gradeIds!=null">
+			AND cg.grade_id in
+			<foreach collection="gradeIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY tr.tr_id ) bb LEFT JOIN `user` u on bb.USER_ID = u.USER_ID
+		GROUP BY bb.USER_ID ) bb1
+		LEFT JOIN (
+		SELECT aa.user_id as teacherId,
+		SUM(aa.monthRewardMoney1) as 	monthRewardMoney1,
+		SUM(aa.monthRewardMoney2) as monthRewardMoney2
+		FROM (
+		SELECT
+		tmr.tmr_id,
+		tmr.user_id,
+		IF (tmr.reward_type = 0,tmr.reward_money,0) monthRewardMoney1,
+		IF (tmr.reward_type = 1,tmr.reward_money,0) monthRewardMoney2
+		FROM user_month_reward tmr
+		LEFT JOIN `user` u ON tmr.user_id = u.user_id
+		LEFT JOIN teacher t on u.USER_ID = t.USER_ID
+		WHERE tmr.`year_month` &gt;= #{startMonth} AND tmr.`year_month` &lt;= #{endMonth}
+		<if test="schoolIds!=null">
+			AND t.SCHOOL_ID in
+			<foreach collection="schoolIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="teacherIds!=null">
+			AND t.TEACHER_ID in
+			<foreach collection="teacherIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY tmr.tmr_id ) aa GROUP BY aa.user_id
+		) bb2 ON bb1.teacherId = bb2.teacherId
+
+		UNION
+
+		SELECT
+		bb1.teacherId,
+		bb2.rewardMoney,
+		bb1.teacherName,
+		bb1.contact,
+		IFNULL(bb1.monthRewardMoney1,0) as monthRewardMoney1,
+		IFNULL(bb1.monthRewardMoney2,0) as monthRewardMoney2,
+		(IFNULL(bb1.monthRewardMoney1,0)+IFNULL(bb1.monthRewardMoney2,0)+IFNULL(bb2.rewardMoney,0)) AS rewardMoneyTotal
+		FROM(
+		SELECT
+		aa.teacherId,
+		aa.contact,
+		aa.teacherName,
+		SUM(aa.monthRewardMoney1) AS monthRewardMoney1,
+		SUM(aa.monthRewardMoney2) AS monthRewardMoney2
+		FROM(
+		SELECT
+		tmr.tmr_id,
+		tmr.user_id AS teacherId,
+		u.CONTACT AS contact,
+		u.REAL_NAME AS teacherName,
+		IF(tmr.reward_type = 0,tmr.reward_money,0) monthRewardMoney1,
+		IF(tmr.reward_type = 1,tmr.reward_money,0) monthRewardMoney2
+		FROM user_month_reward tmr
+		LEFT JOIN `user` u ON tmr.user_id = u.user_id
+		LEFT JOIN teacher t on u.USER_ID = t.USER_ID
+		WHERE tmr.`year_month` &gt;= #{startMonth} AND tmr.`year_month` &lt;= #{endMonth}
+		<if test="schoolIds!=null">
+			AND t.SCHOOL_ID in
+			<foreach collection="schoolIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="teacherIds!=null">
+			AND t.TEACHER_ID in
+			<foreach collection="teacherIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY tmr.tmr_id
+		) aa GROUP BY aa.teacherId
+		) bb1 LEFT JOIN (
+		SELECT
+		bb.USER_ID as teacherId,
+		SUM(bb.reward_money) AS rewardMoney
+		FROM
+		(
+		SELECT
+		tr.tr_id,
+		t.USER_ID,
+		tr.reward_money
+		FROM teacher_reward tr
+		LEFT JOIN student_curriculum sc on tr.curc_id = sc.CURC_ID
+		LEFT JOIN curriculum c on sc.CURC_ID = c.CURC_ID
+		LEFT JOIN teacher t on tr.teacher_id = t.TEACHER_ID
+		LEFT JOIN school s on t.SCHOOL_ID = s.SCHOOL_ID
+		LEFT JOIN teach_class tc on c.CLASS_ID = tc.CLASS_ID
+		WHERE tr.teach_method != 2
+		AND c.is_calculation = 1
+		AND c.curriculum_date BETWEEN #{startDate} AND #{endDate}
+		<if test="schoolIds!=null">
+			AND s.SCHOOL_ID in
+			<foreach collection="schoolIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="teacherIds!=null">
+			AND t.TEACHER_ID in
+			<foreach collection="teacherIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="subjectIds!=null">
+			AND c.teacher_subject_id in
+			<foreach collection="subjectIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="sectionIds!=null">
+			AND c.teacher_section_id in
+			<foreach collection="sectionIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="classIds!=null">
+			AND tc.CLASS_ID in
+			<foreach collection="classIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="courseIds!=null">
+			AND tc.COURSE_ID in
+			<foreach collection="courseIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="gradeIds!=null">
+			AND tc.NIAN_JIS_ID in
+			<foreach collection="gradeIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY tr.tr_id
+		UNION
+		SELECT
+		tr.tr_id,
+		t.USER_ID,
+		tr.reward_money
+		FROM teacher_reward tr
+		LEFT JOIN student_curriculum sc on tr.curc_id = sc.CURC_ID
+		LEFT JOIN month_curriculum mc on sc.MCC_ID = mc.MCC_ID
+		LEFT JOIN curriculum c on sc.CURC_ID = c.CURC_ID
+		LEFT JOIN teacher t on tr.teacher_id = t.TEACHER_ID
+		LEFT JOIN school s on t.SCHOOL_ID = s.SCHOOL_ID
+		LEFT JOIN t_month_teacher_subject mts on mc.MCC_ID = mts.mcc_id AND tr.teacher_id = mts.teacher_id
+		LEFT JOIN teach_class tc on mc.CLASS_ID = tc.CLASS_ID
+		LEFT JOIN course_grade cg on tc.COURSE_ID = cg.COURSE_ID
+		WHERE tr.teach_method = 2
+		AND tr.teacher_type = 0
+		AND c.is_calculation = 1
+		AND c.curriculum_date BETWEEN #{startDate} AND #{endDate}
+		<if test="schoolIds!=null">
+			AND s.SCHOOL_ID in
+			<foreach collection="schoolIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="teacherIds!=null">
+			AND t.TEACHER_ID in
+			<foreach collection="teacherIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="courseIds!=null">
+			AND tc.COURSE_ID in
+			<foreach collection="courseIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="subjectIds!=null">
+			AND mts.subject_id in
+			<foreach collection="subjectIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="sectionIds!=null">
+			AND mc.teacher_section_id in
+			<foreach collection="sectionIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="classIds!=null">
+			AND tc.CLASS_ID in
+			<foreach collection="classIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="gradeIds!=null">
+			AND cg.grade_id in
+			<foreach collection="gradeIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY tr.tr_id
+		UNION
+		SELECT
+		tr.tr_id,
+		t.USER_ID,
+		tr.reward_money
+		FROM teacher_reward tr
+		LEFT JOIN student_curriculum sc on tr.curc_id = sc.CURC_ID
+		LEFT JOIN month_curriculum mc on sc.MCC_ID = mc.MCC_ID
+		LEFT JOIN curriculum c on sc.CURC_ID = c.CURC_ID
+		LEFT JOIN teacher t on tr.teacher_id = t.TEACHER_ID
+		LEFT JOIN school s on t.SCHOOL_ID = s.SCHOOL_ID
+		LEFT JOIN teach_class tc on mc.CLASS_ID = tc.CLASS_ID
+		LEFT JOIN course_grade cg on tc.COURSE_ID = cg.COURSE_ID
+		WHERE tr.teach_method = 2
+		AND tr.teacher_type = 1
+		AND c.is_calculation = 1
+		AND c.curriculum_date BETWEEN #{startDate} AND #{endDate}
+		<if test="schoolIds!=null">
+			AND s.SCHOOL_ID in
+			<foreach collection="schoolIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="teacherIds!=null">
+			AND t.TEACHER_ID in
+			<foreach collection="teacherIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="classIds!=null">
+			AND tc.CLASS_ID in
+			<foreach collection="classIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="courseIds!=null">
+			AND tc.COURSE_ID in
+			<foreach collection="courseIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="subjectIds!=null">
+			AND mc.assist_subject_id in
+			<foreach collection="subjectIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="sectionIds!=null">
+			AND mc.teacher_section_id in
+			<foreach collection="sectionIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="gradeIds!=null">
+			AND cg.grade_id in
+			<foreach collection="gradeIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY tr.tr_id ) bb GROUP BY bb.USER_ID
+		) bb2 ON bb1.teacherId = bb2.teacherId
+		) bb4
+		<where>
+			<if test="teacherIds!=null">
+				AND bb4.teacherId in
+				(SELECT t.user_id from teacher t where t.teacher_id in
+				<foreach collection="teacherIds" index="index" item="item" separator="," open="(" close=")">
+					#{item}
+				</foreach>
+				)
+			</if>
+		</where> ORDER BY bb4.rewardMoneyTotal DESC
+
+	</select>
+
+	<!-- BS端根据教学点用户查询总课酬报表 -->
+	<select id="formulaIncomeSchoolChart" parameterType="Object" resultType="java.util.HashMap">
+
+		SELECT bb3.schoolId as teacherId,bb3.teacherName,
+		SUM(bb3.rewardMoney) as rewardMoney,
+		SUM(bb3.monthRewardMoney1) as monthRewardMoney1,
+		SUM(bb3.monthRewardMoney2) as monthRewardMoney2,
+		SUM(bb3.rewardMoneyTotal) as rewardMoneyTotal
+		FROM (
+		SELECT
+		bb1.teacherId,
+		bb1.schoolId,
+		bb1.teacherName,
+		bb1.rewardMoney,
+		IFNULL(bb2.monthRewardMoney1, 0) AS monthRewardMoney1,
+		IFNULL(bb2.monthRewardMoney2, 0) AS monthRewardMoney2,
+		(IFNULL(bb2.monthRewardMoney1, 0) + IFNULL(bb2.monthRewardMoney2, 0) + IFNULL(bb1.rewardMoney, 0)) AS rewardMoneyTotal
+		FROM(
+		SELECT
+		bb.TEACHER_ID AS teacherId,
+		bb.SCHOOL_ID as schoolId,
+		SUM(bb.reward_money) AS rewardMoney,
+		bb.SCHOOL_NAME as teacherName
+		FROM(
+		SELECT
+		tr.tr_id,
+		t.TEACHER_ID,
+		t.SCHOOL_ID,
+		s.SCHOOL_NAME,
+		tr.reward_money
+		FROM teacher_reward tr
+		LEFT JOIN student_curriculum sc ON tr.curc_id = sc.CURC_ID
+		LEFT JOIN curriculum c ON sc.CURC_ID = c.CURC_ID
+		LEFT JOIN teacher t ON tr.teacher_id = t.TEACHER_ID
+		LEFT JOIN school s ON t.SCHOOL_ID = s.SCHOOL_ID
+		LEFT JOIN teach_class tc ON c.CLASS_ID = tc.CLASS_ID
+		WHERE tr.teach_method != 2
+		AND c.is_calculation = 1
+		AND c.curriculum_date BETWEEN #{startDate} AND #{endDate}
+		<if test="schoolIds!=null">
+			AND s.SCHOOL_ID in
+			<foreach collection="schoolIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="teacherIds!=null">
+			AND t.TEACHER_ID in
+			<foreach collection="teacherIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="subjectIds!=null">
+			AND c.teacher_subject_id in
+			<foreach collection="subjectIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="sectionIds!=null">
+			AND c.teacher_section_id in
+			<foreach collection="sectionIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="classIds!=null">
+			AND tc.CLASS_ID in
+			<foreach collection="classIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="courseIds!=null">
+			AND tc.COURSE_ID in
+			<foreach collection="courseIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="gradeIds!=null">
+			AND tc.NIAN_JIS_ID in
+			<foreach collection="gradeIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY tr.tr_id
+		UNION
+		SELECT
+		tr.tr_id,
+		t.TEACHER_ID,
+		t.SCHOOL_ID,
+		s.SCHOOL_NAME,
+		tr.reward_money
+		FROM teacher_reward tr
+		LEFT JOIN student_curriculum sc ON tr.curc_id = sc.CURC_ID
+		LEFT JOIN month_curriculum mc ON sc.MCC_ID = mc.MCC_ID
+		LEFT JOIN curriculum c ON sc.CURC_ID = c.CURC_ID
+		LEFT JOIN teacher t ON tr.teacher_id = t.TEACHER_ID
+		LEFT JOIN school s ON t.SCHOOL_ID = s.SCHOOL_ID
+		LEFT JOIN t_month_teacher_subject mts ON mc.MCC_ID = mts.mcc_id
+		AND tr.teacher_id = mts.teacher_id
+		LEFT JOIN teach_class tc ON mc.CLASS_ID = tc.CLASS_ID
+		LEFT JOIN course_grade cg ON tc.COURSE_ID = cg.COURSE_ID
+		WHERE tr.teach_method = 2
+		AND tr.teacher_type = 0
+		AND c.is_calculation = 1
+		AND c.curriculum_date BETWEEN #{startDate} AND #{endDate}
+		<if test="schoolIds!=null">
+			AND s.SCHOOL_ID in
+			<foreach collection="schoolIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="teacherIds!=null">
+			AND t.TEACHER_ID in
+			<foreach collection="teacherIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="courseIds!=null">
+			AND tc.COURSE_ID in
+			<foreach collection="courseIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="subjectIds!=null">
+			AND mts.subject_id in
+			<foreach collection="subjectIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="sectionIds!=null">
+			AND mc.teacher_section_id in
+			<foreach collection="sectionIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="classIds!=null">
+			AND tc.CLASS_ID in
+			<foreach collection="classIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="gradeIds!=null">
+			AND cg.grade_id in
+			<foreach collection="gradeIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY tr.tr_id
+		UNION
+		SELECT
+		tr.tr_id,
+		t.TEACHER_ID,
+		t.SCHOOL_ID,
+		s.SCHOOL_NAME,
+		tr.reward_money
+		FROM teacher_reward tr
+		LEFT JOIN student_curriculum sc ON tr.curc_id = sc.CURC_ID
+		LEFT JOIN month_curriculum mc ON sc.MCC_ID = mc.MCC_ID
+		LEFT JOIN curriculum c ON sc.CURC_ID = c.CURC_ID
+		LEFT JOIN teacher t ON tr.teacher_id = t.TEACHER_ID
+		LEFT JOIN school s ON t.SCHOOL_ID = s.SCHOOL_ID
+		LEFT JOIN teach_class tc ON mc.CLASS_ID = tc.CLASS_ID
+		LEFT JOIN course_grade cg ON tc.COURSE_ID = cg.COURSE_ID
+		WHERE tr.teach_method = 2
+		AND tr.teacher_type = 1
+		AND c.is_calculation = 1
+		AND c.curriculum_date BETWEEN #{startDate} AND #{endDate}
+		<if test="schoolIds!=null">
+			AND s.SCHOOL_ID in
+			<foreach collection="schoolIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="teacherIds!=null">
+			AND t.TEACHER_ID in
+			<foreach collection="teacherIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="courseIds!=null">
+			AND tc.COURSE_ID in
+			<foreach collection="courseIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="subjectIds!=null">
+			AND mc.assist_subject_id in
+			<foreach collection="subjectIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="sectionIds!=null">
+			AND mc.teacher_section_id in
+			<foreach collection="sectionIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="classIds!=null">
+			AND tc.CLASS_ID in
+			<foreach collection="classIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="gradeIds!=null">
+			AND cg.grade_id in
+			<foreach collection="gradeIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY tr.tr_id
+		) bb GROUP BY bb.TEACHER_ID
+		) bb1
+		LEFT JOIN (
+		SELECT
+		aa.teacher_id AS teacherId,
+		SUM(aa.monthRewardMoney1) AS monthRewardMoney1,
+		SUM(aa.monthRewardMoney2) AS monthRewardMoney2
+		FROM(
+		SELECT
+		tmr.tmr_id,
+		tmr.teacher_id,
+		IF (tmr.reward_type = 0,tmr.reward_money,0) monthRewardMoney1,
+		IF (tmr.reward_type = 1,tmr.reward_money,0) monthRewardMoney2
+		FROM teacher_month_reward tmr
+		LEFT JOIN teacher t on tmr.teacher_id = t.TEACHER_ID
+		LEFT JOIN school s on t.SCHOOL_ID = s.SCHOOL_ID
+		WHERE tmr.`year_month` &gt;= #{startMonth} AND tmr.`year_month` &lt;= #{endMonth}
+		<if test="schoolIds!=null">
+			AND t.SCHOOL_ID in
+			<foreach collection="schoolIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="teacherIds!=null">
+			AND tmr.TEACHER_ID in
+			<foreach collection="teacherIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY tmr.tmr_id
+		) aa GROUP BY	aa.teacher_id
+		) bb2 ON bb1.teacherId = bb2.teacherId
+
+		UNION
+
+		SELECT
+		bb1.teacherId,
+		bb1.schoolId,
+		bb1.teacherName,
+		IFNULL(bb2.rewardMoney,0) as rewardMoney,
+		IFNULL(bb1.monthRewardMoney1, 0) AS monthRewardMoney1,
+		IFNULL(bb1.monthRewardMoney2, 0) AS monthRewardMoney2,
+		(IFNULL(bb1.monthRewardMoney1, 0) + IFNULL(bb1.monthRewardMoney2, 0) + IFNULL(bb2.rewardMoney, 0)) AS rewardMoneyTotal
+		FROM(
+		SELECT
+		aa.teacherId,
+		aa.schoolId,
+		aa.teacherName,
+		SUM(aa.monthRewardMoney1) AS monthRewardMoney1,
+		SUM(aa.monthRewardMoney2) AS monthRewardMoney2
+		FROM(
+		SELECT
+		tmr.tmr_id,
+		tmr.teacher_id AS teacherId,
+		t.school_id as schoolId,
+		s.SCHOOL_NAME as teacherName,
+		IF (tmr.reward_type = 0,tmr.reward_money,0) monthRewardMoney1,
+		IF (tmr.reward_type = 1,tmr.reward_money,0) monthRewardMoney2
+		FROM teacher_month_reward tmr
+		LEFT JOIN teacher t on tmr.teacher_id = t.TEACHER_ID
+		LEFT JOIN school s on t.SCHOOL_ID = s.SCHOOL_ID
+		WHERE tmr.`year_month` &gt;= #{startMonth} AND tmr.`year_month` &lt;= #{endMonth}
+		<if test="schoolIds!=null">
+			AND t.SCHOOL_ID in
+			<foreach collection="schoolIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="teacherIds!=null">
+			AND tmr.TEACHER_ID in
+			<foreach collection="teacherIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY tmr.tmr_id
+		) aa GROUP BY aa.teacherId
+		) bb1
+		LEFT JOIN (
+		SELECT
+		bb.TEACHER_ID AS teacherId,
+		SUM(bb.reward_money) AS rewardMoney
+		FROM(
+		SELECT
+		tr.tr_id,
+		t.TEACHER_ID,
+		tr.reward_money
+		FROM teacher_reward tr
+		LEFT JOIN student_curriculum sc ON tr.curc_id = sc.CURC_ID
+		LEFT JOIN curriculum c ON sc.CURC_ID = c.CURC_ID
+		LEFT JOIN teacher t ON tr.teacher_id = t.TEACHER_ID
+		LEFT JOIN school s ON t.SCHOOL_ID = s.SCHOOL_ID
+		LEFT JOIN teach_class tc ON c.CLASS_ID = tc.CLASS_ID
+		WHERE tr.teach_method != 2
+		AND c.is_calculation = 1
+		AND c.curriculum_date BETWEEN #{startDate} AND #{endDate}
+		<if test="schoolIds!=null">
+			AND s.SCHOOL_ID in
+			<foreach collection="schoolIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="teacherIds!=null">
+			AND t.TEACHER_ID in
+			<foreach collection="teacherIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="subjectIds!=null">
+			AND c.teacher_subject_id in
+			<foreach collection="subjectIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="sectionIds!=null">
+			AND c.teacher_section_id in
+			<foreach collection="sectionIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="classIds!=null">
+			AND tc.CLASS_ID in
+			<foreach collection="classIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="courseIds!=null">
+			AND tc.COURSE_ID in
+			<foreach collection="courseIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="gradeIds!=null">
+			AND tc.NIAN_JIS_ID in
+			<foreach collection="gradeIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY tr.tr_id
+		UNION
+		SELECT
+		tr.tr_id,
+		t.TEACHER_ID,
+		tr.reward_money
+		FROM teacher_reward tr
+		LEFT JOIN student_curriculum sc ON tr.curc_id = sc.CURC_ID
+		LEFT JOIN month_curriculum mc ON sc.MCC_ID = mc.MCC_ID
+		LEFT JOIN curriculum c ON sc.CURC_ID = c.CURC_ID
+		LEFT JOIN teacher t ON tr.teacher_id = t.TEACHER_ID
+		LEFT JOIN school s ON t.SCHOOL_ID = s.SCHOOL_ID
+		LEFT JOIN t_month_teacher_subject mts ON mc.MCC_ID = mts.mcc_id
+		AND tr.teacher_id = mts.teacher_id
+		LEFT JOIN teach_class tc ON mc.CLASS_ID = tc.CLASS_ID
+		LEFT JOIN course_grade cg ON tc.COURSE_ID = cg.COURSE_ID
+		WHERE tr.teach_method = 2
+		AND tr.teacher_type = 0
+		AND c.is_calculation = 1
+		AND c.curriculum_date BETWEEN #{startDate} AND #{endDate}
+		<if test="schoolIds!=null">
+			AND s.SCHOOL_ID in
+			<foreach collection="schoolIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="teacherIds!=null">
+			AND t.TEACHER_ID in
+			<foreach collection="teacherIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="subjectIds!=null">
+			AND mts.subject_id in
+			<foreach collection="subjectIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="sectionIds!=null">
+			AND c.teacher_section_id in
+			<foreach collection="sectionIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="classIds!=null">
+			AND tc.CLASS_ID in
+			<foreach collection="classIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="courseIds!=null">
+			AND tc.COURSE_ID in
+			<foreach collection="courseIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="gradeIds!=null">
+			AND cg.grade_id in
+			<foreach collection="gradeIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY tr.tr_id
+		UNION
+		SELECT
+		tr.tr_id,
+		t.TEACHER_ID,
+		tr.reward_money
+		FROM teacher_reward tr
+		LEFT JOIN student_curriculum sc ON tr.curc_id = sc.CURC_ID
+		LEFT JOIN month_curriculum mc ON sc.MCC_ID = mc.MCC_ID
+		LEFT JOIN curriculum c ON sc.CURC_ID = c.CURC_ID
+		LEFT JOIN teacher t ON tr.teacher_id = t.TEACHER_ID
+		LEFT JOIN school s ON t.SCHOOL_ID = s.SCHOOL_ID
+		LEFT JOIN teach_class tc ON mc.CLASS_ID = tc.CLASS_ID
+		LEFT JOIN course_grade cg ON tc.COURSE_ID = cg.COURSE_ID
+		WHERE tr.teach_method = 2
+		AND tr.teacher_type = 1
+		AND c.is_calculation = 1
+		AND c.curriculum_date BETWEEN #{startDate} AND #{endDate}
+		<if test="schoolIds!=null">
+			AND s.SCHOOL_ID in
+			<foreach collection="schoolIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="teacherIds!=null">
+			AND t.TEACHER_ID in
+			<foreach collection="teacherIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="subjectIds!=null">
+			AND mc.assist_subject_id in
+			<foreach collection="subjectIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="sectionIds!=null">
+			AND c.teacher_section_id in
+			<foreach collection="sectionIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="classIds!=null">
+			AND tc.CLASS_ID in
+			<foreach collection="classIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="courseIds!=null">
+			AND tc.COURSE_ID in
+			<foreach collection="courseIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="gradeIds!=null">
+			AND cg.grade_id in
+			<foreach collection="gradeIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY tr.tr_id
+		) bb GROUP BY bb.TEACHER_ID
+		) bb2 ON bb1.teacherId = bb2.teacherId
+		) bb3 GROUP BY bb3.schoolId
+		ORDER BY rewardMoneyTotal DESC
+
+	</select>
+
+	<!-- BS端根据学科查询总课酬报表 -->
+	<select id="formulaIncomeSubjectChart" parameterType="Object" resultType="java.util.HashMap">
+
+		SELECT * FROM (
+		SELECT
+		SUM(b0.reward_money) AS rewardMoney,
+		b0.subjectId AS teacherId,
+		s.SUBJECT_NAME AS teacherName
+		FROM(
+		SELECT
+		tr.tr_id,
+		SUM(tr.reward_money) reward_money,
+		tr.teacher_id,
+		tc.XUE_KES_ID AS subjectId
+		FROM teacher_reward tr
+		LEFT JOIN curriculum c ON tr.curc_id = c.CURC_ID
+		LEFT JOIN teacher t ON tr.TEACHER_ID = t.TEACHER_ID
+		LEFT JOIN teach_class tc ON c.CLASS_ID = tc.CLASS_ID
+		LEFT JOIN course cou ON tc.COURSE_ID = cou.COURSE_ID
+		WHERE c.CURRICULUM_DATE BETWEEN #{startDate} AND #{endDate}
+		AND tr.teach_method != 2
+		<if test="schoolIds!=null">
+			AND t.SCHOOL_ID in
+			<foreach collection="schoolIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="teacherIds!=null">
+			AND t.TEACHER_ID in
+			<foreach collection="teacherIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="subjectIds!=null">
+			AND c.teacher_subject_id IN
+			<foreach collection="subjectIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="sectionIds!=null">
+			AND c.teacher_section_id IN
+			<foreach collection="sectionIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="courseIds!=null">
+			AND cou.COURSE_ID IN
+			<foreach collection="courseIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="gradeIds!=null">
+			AND tc.NIAN_JIS_ID in
+			<foreach collection="gradeIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY tc.XUE_KES_ID
+		UNION
+		SELECT
+		tr.tr_id,
+		tr.reward_money,
+		tr.teacher_id,
+		mts.subject_id AS subjectId
+		FROM teacher_reward tr
+		LEFT JOIN student_curriculum sc ON tr.curc_id = sc.CURC_ID
+		LEFT JOIN month_curriculum mc ON sc.MCC_ID = mc.MCC_ID
+		LEFT JOIN t_month_teacher_subject mts ON mc.MCC_ID = mts.mcc_id
+		LEFT JOIN `teacher` t ON tr.`TEACHER_ID` = t.`TEACHER_ID`
+		LEFT JOIN `teach_class` tc ON mc.CLASS_ID = tc.`CLASS_ID`
+		LEFT JOIN course c ON tc.COURSE_ID = c.COURSE_ID
+		LEFT JOIN course_grade cg ON c.COURSE_ID = cg.course_id
+		WHERE tr.`teach_method` = 2
+		AND tr.teacher_type = 0
+		AND mc.`CURRICULUM_DATE` BETWEEN #{startDate} AND #{endDate}
+		<if test="schoolIds!=null">
+			AND t.SCHOOL_ID in
+			<foreach collection="schoolIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="teacherIds!=null">
+			AND t.TEACHER_ID in
+			<foreach collection="teacherIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="subjectIds!=null">
+			AND mts.subject_id IN
+			<foreach collection="subjectIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="sectionIds!=null">
+			AND mc.teacher_section_id IN
+			<foreach collection="sectionIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="courseIds!=null">
+			AND c.COURSE_ID IN
+			<foreach collection="courseIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="gradeIds!=null">
+			AND cg.grade_id in
+			<foreach collection="gradeIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY tr.tr_id
+		UNION
+		SELECT
+		tr.tr_id,
+		tr.reward_money,
+		tr.teacher_id,
+		mc.assist_subject_id AS subjectId
+		FROM teacher_reward tr
+		LEFT JOIN student_curriculum sc ON tr.curc_id = sc.CURC_ID
+		LEFT JOIN month_curriculum mc ON sc.MCC_ID = mc.MCC_ID
+		LEFT JOIN `teacher` t ON tr.`TEACHER_ID` = t.`TEACHER_ID`
+		LEFT JOIN `teach_class` tc ON mc.CLASS_ID = tc.`CLASS_ID`
+		LEFT JOIN course c ON tc.COURSE_ID = c.COURSE_ID
+		LEFT JOIN course_grade cg ON c.COURSE_ID = cg.course_id
+		WHERE tr.`teach_method` = 2
+		AND tr.teacher_type = 1
+		AND mc.`CURRICULUM_DATE` BETWEEN #{startDate} AND #{endDate}
+		<if test="schoolIds!=null">
+			AND t.SCHOOL_ID in
+			<foreach collection="schoolIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="teacherIds!=null">
+			AND t.TEACHER_ID in
+			<foreach collection="teacherIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="subjectIds!=null">
+			AND mc.assist_subject_id IN
+			<foreach collection="subjectIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="sectionIds!=null">
+			AND mc.teacher_section_id IN
+			<foreach collection="sectionIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="courseIds!=null">
+			AND c.COURSE_ID IN
+			<foreach collection="courseIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="gradeIds!=null">
+			AND cg.grade_id in
+			<foreach collection="gradeIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY tr.tr_id
+		) b0
+		LEFT JOIN `subject` s ON b0.subjectId = s.SUBJECT_ID
+		GROUP BY b0.subjectId )b1
+		ORDER BY b1.rewardMoney desc
+
+	</select>
+
+	<!-- BS端根据课程查询总课酬报表 -->
+	<select id="formulaIncomeCourseChart" parameterType="Object" resultType="java.util.HashMap">
+
+		SELECT * from (
+		SELECT
+		SUM(b0.reward_money) AS rewardMoney,
+		b0.COURSE_ID as teacherId,
+		b0.COURSE_NAME as teacherName
+		FROM (
+		SELECT
+		tr.tr_id,
+		SUM(tr.reward_money) reward_money,
+		tr.teacher_id,
+		cou.COURSE_ID,
+		cou.COURSE_NAME
+		FROM teacher_reward tr
+		LEFT JOIN curriculum c ON tr.curc_id = c.CURC_ID
+		LEFT JOIN teacher t ON tr.TEACHER_ID = t.TEACHER_ID
+		LEFT JOIN teach_class tc ON c.CLASS_ID = tc.CLASS_ID
+		LEFT JOIN course cou ON tc.COURSE_ID = cou.COURSE_ID
+		WHERE c.CURRICULUM_DATE BETWEEN #{startDate} AND #{endDate}
+		AND tr.teach_method != 2
+		<if test="schoolIds!=null">
+			AND t.SCHOOL_ID in
+			<foreach collection="schoolIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="teacherIds!=null">
+			AND t.TEACHER_ID in
+			<foreach collection="teacherIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="subjectIds!=null">
+			AND c.teacher_subject_id IN
+			<foreach collection="subjectIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="sectionIds!=null">
+			AND c.teacher_section_id IN
+			<foreach collection="sectionIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="courseIds!=null">
+			AND cou.COURSE_ID IN
+			<foreach collection="courseIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="gradeIds!=null">
+			AND tc.NIAN_JIS_ID in
+			<foreach collection="gradeIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY tc.XUE_KES_ID
+		UNION
+		SELECT
+		tr.tr_id,
+		tr.reward_money,
+		tr.teacher_id,
+		c.COURSE_ID,
+		c.COURSE_NAME
+		FROM teacher_reward tr
+		LEFT JOIN student_curriculum sc ON tr.curc_id = sc.CURC_ID
+		LEFT JOIN month_curriculum mc ON sc.MCC_ID = mc.MCC_ID
+		LEFT JOIN t_month_teacher_subject mts ON mc.MCC_ID = mts.mcc_id
+		LEFT JOIN `teacher` t ON tr.`TEACHER_ID` = t.`TEACHER_ID`
+		LEFT JOIN `teach_class` tc ON mc.CLASS_ID = tc.`CLASS_ID`
+		LEFT JOIN course c ON tc.COURSE_ID = c.COURSE_ID
+		LEFT JOIN course_grade cg ON c.COURSE_ID = cg.course_id
+		WHERE tr.`teach_method` = 2
+		AND tr.teacher_type = 0
+		AND mc.`CURRICULUM_DATE` BETWEEN #{startDate} AND #{endDate}
+		<if test="schoolIds!=null">
+			AND t.SCHOOL_ID in
+			<foreach collection="schoolIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="teacherIds!=null">
+			AND t.TEACHER_ID in
+			<foreach collection="teacherIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="subjectIds!=null">
+			AND mts.subject_id IN
+			<foreach collection="subjectIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="sectionIds!=null">
+			AND mc.teacher_section_id IN
+			<foreach collection="sectionIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="courseIds!=null">
+			AND c.COURSE_ID IN
+			<foreach collection="courseIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="gradeIds!=null">
+			AND cg.grade_id in
+			<foreach collection="gradeIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY tr.tr_id
+		UNION
+		SELECT
+		tr.tr_id,
+		tr.reward_money,
+		tr.teacher_id,
+		c.COURSE_ID,
+		c.COURSE_NAME
+		FROM teacher_reward tr
+		LEFT JOIN student_curriculum sc ON tr.curc_id = sc.CURC_ID
+		LEFT JOIN month_curriculum mc ON sc.MCC_ID = mc.MCC_ID
+		LEFT JOIN `teacher` t ON tr.`TEACHER_ID` = t.`TEACHER_ID`
+		LEFT JOIN `teach_class` tc ON mc.CLASS_ID = tc.`CLASS_ID`
+		LEFT JOIN course c ON tc.COURSE_ID = c.COURSE_ID
+		LEFT JOIN course_grade cg ON c.COURSE_ID = cg.course_id
+		WHERE tr.`teach_method` = 2
+		AND tr.teacher_type = 1
+		AND mc.`CURRICULUM_DATE` BETWEEN #{startDate} AND #{endDate}
+		<if test="schoolIds!=null">
+			AND t.SCHOOL_ID in
+			<foreach collection="schoolIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="teacherIds!=null">
+			AND t.TEACHER_ID in
+			<foreach collection="teacherIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="subjectIds!=null">
+			AND mc.assist_subject_id IN
+			<foreach collection="subjectIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="sectionIds!=null">
+			AND mc.teacher_section_id IN
+			<foreach collection="sectionIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="courseIds!=null">
+			AND c.COURSE_ID IN
+			<foreach collection="courseIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="gradeIds!=null">
+			AND cg.grade_id in
+			<foreach collection="gradeIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY tr.tr_id
+		) b0 GROUP BY b0.COURSE_ID
+		)b1 ORDER BY b1.rewardMoney desc
+
+
+	</select>
+
+	<!-- BS端根据学段查询总课酬报表 -->
+	<select id="formulaIncomeSectionChart" parameterType="Object" resultType="java.util.HashMap">
+
+		SELECT bb4.* from (
+		SELECT
+		bb3.SECTION_NAME as teacherName,
+		ROUND(SUM(bb3.rewardMoney), 2) AS rewardMoney
+		FROM
+		(
+		SELECT
+		ss.SECTION_NAME,
+		SUM(tr.reward_money) rewardMoney
+		FROM
+		teacher_reward tr,
+		curriculum c,
+		teacher t,
+		teach_class tc,
+		study_grade sg,
+		study_section ss
+		WHERE tr.curc_id = c.CURC_ID
+		AND tr.TEACHER_ID = t.TEACHER_ID
+		AND c.CLASS_ID = tc.CLASS_ID
+		AND tc.NIAN_JIS_ID = sg.GRADE_ID
+		AND sg.SECTION_ID = ss.SECTION_ID
+		AND c.CURRICULUM_DATE BETWEEN #{startDate} AND #{endDate}
+		AND tr.teach_method != 2
+		<if test="schoolIds!=null">
+			and t.SCHOOL_ID in
+			<foreach collection="schoolIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="teacherNames!=null">
+			and t.teacher_name in
+			<foreach collection="teacherNames" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY ss.SECTION_NAME
+		UNION
+		SELECT
+		bb2.SECTION_NAME,
+		ROUND(bb2.rewardMoney, 2) AS rewardMoney
+		FROM
+		(
+		SELECT
+		t2.SECTION_NAME AS SECTION_NAME,
+		ROUND((t1.reward_money), 2) AS rewardMoney
+		FROM
+		(
+		SELECT
+		tr.reward_money,
+		c.MCC_ID
+		FROM
+		teacher_reward tr,
+		curriculum c,
+		teacher t
+		WHERE tr.`curc_id` = c.`CURC_ID` AND tr.teacher_id = t.teacher_id
+		AND tr.`teach_method` = 2
+		AND c.`CURRICULUM_DATE` BETWEEN #{startDate} AND #{endDate}
+		<if test="schoolIds!=null">
+			and t.SCHOOL_ID in
+			<foreach collection="schoolIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="teacherNames!=null">
+			and t.teacher_name in
+			<foreach collection="teacherNames" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY c.MCC_ID
+		) t1
+		LEFT JOIN (
+		SELECT
+		tts.mcc_id,
+		ss.SECTION_NAME
+		FROM
+		`t_month_teacher_subject` tts,
+		month_curriculum mc,
+		curriculum c,
+		teach_class tc,
+		course_grade cg,
+		study_grade sg,
+		study_section ss
+		WHERE
+		tts.mcc_id = mc.MCC_ID
+		AND mc.MCC_ID = c.MCC_ID
+		AND c.CLASS_ID = tc.CLASS_ID
+		AND tc.COURSE_ID = cg.course_id
+		AND cg.grade_id = sg.GRADE_ID
+		AND sg.SECTION_ID = ss.SECTION_ID
+		GROUP BY tts.mcc_id, ss.SECTION_NAME
+		) t2 ON t1.MCC_ID = t2.MCC_ID
+		) bb2
+		GROUP BY bb2.SECTION_NAME
+		) bb3 GROUP BY bb3.SECTION_NAME ) bb4
+		<where>
+			<if test="sectionNames!=null">
+				and bb4.teacherName in
+				<foreach collection="sectionNames" index="index" item="item" separator="," open="(" close=")">
+					#{item}
+				</foreach>
+			</if>
+		</where>
+		ORDER BY bb4.rewardMoney DESC
+
+
+	</select>
+
+	<!-- BS端根据年级查询总课酬报表 -->
+	<select id="formulaIncomeGradeChart" parameterType="Object" resultType="java.util.HashMap">
+
+		SELECT * FROM (
+		SELECT
+		ROUND(SUM(bb2.rewardMoney), 2) AS rewardMoney,
+		bb2.GRADE_NAME as teacherName
+		FROM
+		(
+		SELECT
+		sg.GRADE_NAME,
+		SUM(tr.reward_money) rewardMoney
+		FROM
+		teacher_reward tr,
+		curriculum c,
+		teacher t,
+		teach_class tc,
+		study_grade sg
+		WHERE tr.curc_id = c.CURC_ID and tr.teacher_id = t.teacher_id
+		AND c.CLASS_ID = tc.CLASS_ID
+		AND tc.NIAN_JIS_ID = sg.GRADE_ID
+		AND c.CURRICULUM_DATE BETWEEN #{startDate} AND #{endDate}
+		AND tr.teach_method != 2
+		<if test="schoolIds!=null">
+			and t.SCHOOL_ID in
+			<foreach collection="schoolIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="teacherNames!=null">
+			and t.teacher_name in
+			<foreach collection="teacherNames" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY
+		sg.GRADE_NAME
+		UNION
+		SELECT
+		bb1.GRADE_NAME,
+		SUM(bb1.reward_money) AS rewardMoney
+		FROM
+		(
+		SELECT
+		(
+		aa0.reward_money * aa1.total_num
+		) AS reward_money,
+		aa1.GRADE_NAME
+		FROM
+		(
+		SELECT
+		SUM(tr.reward_money) AS reward_money,
+		c.MCC_ID
+		FROM
+		teacher_reward tr,
+		curriculum c,
+		teacher t
+		WHERE tr.`curc_id` = c.`CURC_ID` AND tr.teacher_id = t.teacher_id
+		AND tr.`teach_method` = 2
+		AND c.`CURRICULUM_DATE` BETWEEN #{startDate} AND #{endDate}
+		<if test="schoolIds!=null">
+			and t.SCHOOL_ID in
+			<foreach collection="schoolIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="teacherNames!=null">
+			and t.teacher_name in
+			<foreach collection="teacherNames" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		GROUP BY
+		c.MCC_ID
+		) aa0
+		LEFT JOIN (
+		SELECT
+		t1.GRADE_NAME,
+		t1.mcc_id,
+		(1 / t2.total_num) AS total_num
+		FROM
+		(
+		SELECT
+		tts.mcc_id,
+		sg.GRADE_NAME
+		FROM
+		`t_month_teacher_subject` tts,
+		month_curriculum mc,
+		curriculum c,
+		teach_class tc,
+		course_grade cg,
+		study_grade sg
+		WHERE
+		tts.mcc_id = mc.MCC_ID
+		AND mc.MCC_ID = c.MCC_ID
+		AND c.CLASS_ID = tc.CLASS_ID
+		AND tc.COURSE_ID = cg.course_id
+		AND cg.grade_id = sg.GRADE_ID
+		GROUP BY
+		tts.mcc_id,
+		sg.GRADE_NAME
+		) t1
+		LEFT JOIN (
+		SELECT
+		b0.mcc_id,
+		COUNT(1) AS total_num
+		FROM
+		(
+		SELECT
+		tts.mcc_id,
+		sg.GRADE_NAME
+		FROM
+		`t_month_teacher_subject` tts,
+		month_curriculum mc,
+		curriculum c,
+		teach_class tc,
+		course_grade cg,
+		study_grade sg
+		WHERE
+		tts.mcc_id = mc.MCC_ID
+		AND mc.MCC_ID = c.MCC_ID
+		AND c.CLASS_ID = tc.CLASS_ID
+		AND tc.COURSE_ID = cg.course_id
+		AND cg.grade_id = sg.GRADE_ID
+		GROUP BY
+		tts.mcc_id,
+		sg.GRADE_NAME
+		) b0
+		GROUP BY
+		b0.mcc_id
+		) t2 ON t1.MCC_ID = t2.MCC_ID
+		) aa1 ON aa0.MCC_ID = aa1.mcc_id
+		) bb1
+		GROUP BY
+		bb1.GRADE_NAME
+		) bb2
+		GROUP BY
+		bb2.GRADE_NAME
+		) bb3
+		<where>
+			<if test="gradeNames!=null">
+				and bb3.teacherName in
+				<foreach collection="gradeNames" index="index" item="item" separator="," open="(" close=")">
+					#{item}
+				</foreach>
+			</if>
+		</where> ORDER BY bb3.rewardMoney DESC
+
+
+	</select>
+
+	<!-- 查询记录条数 -->
+	<sql id="charge_record_count">
+		(SELECT
+		COUNT(*)
+		FROM
+		charge_record cr1,
+		teach_class tc1,
+		school sch1,
+		course co1,
+		course_grade cg1,
+		study_grade sg1,
+		study_section ss1,
+		course_subject cs1,
+		`SUBJECT` s1
+		WHERE cr1.`class_id` = tc1.`CLASS_ID`
+		AND tc1.`school_id` = sch1.`SCHOOL_ID`
+		AND tc1.`COURSE_ID` = co1.`COURSE_ID`
+		AND co1.`COURSE_ID` = cs1.`course_id`
+		AND cs1.`subject_id` = s1.`SUBJECT_ID`
+		AND co1.`COURSE_ID` = cg1.`course_id`
+		AND cg1.`grade_id` = sg1.`GRADE_ID`
+		AND sg1.`SECTION_ID` = ss1.`SECTION_ID`
+		AND cr1.type IN (1, 6, 8)
+		AND tc1.TEACH_METHOD = 2
+		AND cr1.charge_id = cr.charge_id)
+	</sql>
+
+	<!-- 查询字段 -->
+	<sql id="charge_record_data">
+		cr.charge_id,
+		sch.SCHOOL_NAME,
+		s.SUBJECT_NAME,
+		ss.section_name,
+		sg.grade_name,
+		(SELECT tpl.`value` from tpl_lookup_item tpl WHERE tpl.`name` = 'TEACH_METHOD' AND tpl.`key` = tc.teach_method) as TEACH_METHOD_NAME,
+		co.COURSE_NAME,
+		tc.CLASS_NAME,
+		cr.create_date,
+		sch.school_id,
+		s.SUBJECT_ID,
+		co.TEACH_METHOD,
+		co.COURSE_ID,
+		sg.grade_id,
+		ss.SECTION_ID,
+		tc.`CLASS_ID`,
+	</sql>
+
+	<!-- 查询班级营收 -->
+	<select id="getClassRevenueInfo" parameterType="Object" resultType="java.util.HashMap">
+		SELECT * FROM (
+		SELECT bb1.itemName,round(SUM(bb1.classRevenueInputMoney),2) as classRevenueInputMoney,
+		round(SUM(bb1.classRevenueOutMoney),2) as classRevenueOutMoney,
+		round(SUM(bb1.classRevenueMoney),2) as classRevenueMoney FROM  (
+		SELECT
+		<if test="searchType != null and searchType == 0">
+			A.SCHOOL_NAME AS itemName,
+		</if>
+		<if test="searchType != null and searchType == 1">
+			A.SUBJECT_NAME AS itemName,
+		</if>
+		<if test="searchType != null and searchType == 2">
+			A.section_name AS itemName,
+		</if>
+		<if test="searchType != null and searchType == 3">
+			A.grade_name AS itemName,
+		</if>
+		<if test="searchType != null and searchType == 4">
+			(SELECT tpl.`value` from tpl_lookup_item tpl WHERE tpl.`name` = 'TEACH_METHOD' AND tpl.`key` = A.TEACH_METHOD) as itemName,
+		</if>
+		<if test="searchType != null and searchType == 5">
+			A.COURSE_NAME AS itemName,
+		</if>
+		<if test="searchType != null and searchType == 6">
+			A.CLASS_NAME AS itemName,
+		</if>
+		round(SUM(A.classRevenueMoney),2) classRevenueMoney,
+		round(SUM(A.classRevenueInputMoney),2) classRevenueInputMoney,
+		round(SUM(A.classRevenueOutMoney),2) classRevenueOutMoney
+		FROM
+		(
+		SELECT
+		<include refid="charge_record_data" />
+		CASE
+		WHEN cr.type IN (1, 8)
+		THEN cr.money
+		WHEN cr.type IN (6)
+		THEN - cr.money
+		ELSE 0
+		END AS classRevenueMoney,
+		CASE
+		WHEN cr.type IN (1, 8)
+		THEN cr.money
+		ELSE 0
+		END AS classRevenueInputMoney,
+		CASE
+		WHEN cr.type IN (6)
+		THEN cr.money
+		ELSE 0
+		END AS classRevenueOutMoney
+		FROM
+		charge_record cr,
+		teach_class tc,
+		school sch,
+		course co,
+		study_grade sg,
+		study_section ss,
+		`SUBJECT` s
+		WHERE cr.`class_id` = tc.`CLASS_ID`
+		AND tc.`school_id` = sch.`SCHOOL_ID`
+		AND tc.`COURSE_ID` = co.`COURSE_ID`
+		AND tc.`XUE_KES_ID` = s.`subject_id`
+		AND tc.`NIAN_JIS_ID` = sg.`grade_id`
+		AND sg.`SECTION_ID` = ss.`SECTION_ID`
+		AND cr.type IN (1, 6, 8)
+		AND tc.TEACH_METHOD != 2
+		AND cr.account_type = 2
+		<if test="manageModel != null">
+			AND tc.manage_model = #{manageModel}
+		</if>
+		UNION
+		ALL
+		SELECT
+		<include refid="charge_record_data" />
+		CASE
+		WHEN cr.type IN (1, 8)
+		THEN cr.money /
+		<include refid="charge_record_count" />
+		WHEN cr.type IN (6)
+		THEN - cr.money /
+		<include refid="charge_record_count" />
+		ELSE 0
+		END AS classRevenueMoney,
+		CASE
+		WHEN cr.type IN (1, 8)
+		THEN cr.money /
+		<include refid="charge_record_count" />
+		ELSE 0
+		END AS classRevenueInputMoney,
+		CASE
+		WHEN cr.type IN (6)
+		THEN cr.money /
+		<include refid="charge_record_count" />
+		ELSE 0
+		END AS classRevenueOutMoney
+		FROM
+		charge_record cr,
+		teach_class tc,
+		school sch,
+		course co,
+		course_grade cg,
+		study_grade sg,
+		study_section ss,
+		course_subject cs,
+		`SUBJECT` s
+		WHERE cr.`class_id` = tc.`CLASS_ID`
+		AND tc.`school_id` = sch.`SCHOOL_ID`
+		AND tc.`COURSE_ID` = co.`COURSE_ID`
+		AND co.`COURSE_ID` = cs.`course_id`
+		AND cs.`subject_id` = s.`SUBJECT_ID`
+		AND co.`COURSE_ID` = cg.`course_id`
+		AND cg.`grade_id` = sg.`GRADE_ID`
+		AND sg.`SECTION_ID` = ss.`SECTION_ID`
+		AND cr.type IN (1, 6, 8)
+		AND tc.TEACH_METHOD = 2
+		AND cr.account_type = 2
+		<if test="manageModel != null">
+			AND tc.manage_model = #{manageModel}
+		</if>
+		) A
+		WHERE 1=1
+		<if test="startDate != null and startDate != ''">
+			AND A.create_date &gt;= #{startDate}
+		</if>
+		<if test="endDate != null and endDate != ''">
+			AND A.create_date &lt; DATE_ADD(#{endDate},INTERVAL 1 DAY)
+		</if>
+		<if test="schoolIds!=null">
+			and A.school_id in
+			<foreach collection="schoolIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="subjectIds!=null">
+			and A.SUBJECT_ID in
+			<foreach collection="subjectIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="teachMethods!=null">
+			and A.TEACH_METHOD in
+			<foreach collection="teachMethods" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="courseIds!=null">
+			and A.COURSE_ID in
+			<foreach collection="courseIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="gradeIds!=null">
+			and A.grade_id in
+			<foreach collection="gradeIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="sectionIds!=null">
+			and A.SECTION_ID in
+			<foreach collection="sectionIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="classIds!=null">
+			and A.CLASS_ID in
+			<foreach collection="classIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="searchType != null and searchType == 0">
+			GROUP BY A.school_id
+		</if>
+		<if test="searchType != null and searchType == 1">
+			GROUP BY A.SUBJECT_ID
+		</if>
+		<if test="searchType != null and searchType == 2">
+			GROUP BY A.SECTION_ID
+		</if>
+		<if test="searchType != null and searchType == 3">
+			GROUP BY A.grade_id
+		</if>
+		<if test="searchType != null and searchType == 4">
+			GROUP BY A.TEACH_METHOD
+		</if>
+		<if test="searchType != null and searchType == 5">
+			GROUP BY A.COURSE_ID
+		</if>
+		<if test="searchType != null and searchType == 6">
+			GROUP BY A.`CLASS_ID`
+		</if>
+		) bb1 GROUP BY bb1.itemName ) bb2 ORDER BY bb2.classRevenueMoney DESC
+		<if test="pager != null and pager.mysqlQueryCondition != null and pager.mysqlQueryCondition != ''">
+			${pager.mysqlQueryCondition}
+		</if>
+	</select>
+
+	<!-- 班级营收报表数量查询 -->
+	<select id="getClassRevenueInfoCount" parameterType="Object" resultType="java.util.HashMap">
+
+		SELECT COUNT(1) as total_num,
+		round(SUM(bb1.classRevenueMoney),2) as classRevenueMoney,
+		round(SUM(bb1.classRevenueInputMoney),2) as classRevenueInputMoney,
+		round(SUM(bb1.classRevenueOutMoney),2) as classRevenueOutMoney
+		FROM (
+
+		SELECT bb0.itemName,round(SUM(bb0.classRevenueInputMoney),2) as classRevenueInputMoney,
+		round(SUM(bb0.classRevenueOutMoney),2) as classRevenueOutMoney,
+		round(SUM(bb0.classRevenueMoney),2) as classRevenueMoney FROM  (
+
+		SELECT
+		<if test="searchType != null and searchType == 0">
+			A.SCHOOL_NAME AS itemName,
+		</if>
+		<if test="searchType != null and searchType == 1">
+			A.SUBJECT_NAME AS itemName,
+		</if>
+		<if test="searchType != null and searchType == 2">
+			A.section_name AS itemName,
+		</if>
+		<if test="searchType != null and searchType == 3">
+			A.grade_name AS itemName,
+		</if>
+		<if test="searchType != null and searchType == 4">
+			(SELECT tpl.`value` from tpl_lookup_item tpl WHERE tpl.`name` = 'TEACH_METHOD' AND tpl.`key` = A.TEACH_METHOD) as itemName,
+		</if>
+		<if test="searchType != null and searchType == 5">
+			A.COURSE_NAME AS itemName,
+		</if>
+		<if test="searchType != null and searchType == 6">
+			A.CLASS_NAME AS itemName,
+		</if>
+		SUM(A.classRevenueMoney) classRevenueMoney,
+		SUM(A.classRevenueInputMoney) classRevenueInputMoney,
+		SUM(A.classRevenueOutMoney) classRevenueOutMoney
+		FROM
+		(
+		SELECT
+		<include refid="charge_record_data"/>
+		CASE
+		WHEN cr.type IN (1, 8)
+		THEN cr.money
+		WHEN cr.type IN (6)
+		THEN - cr.money
+		ELSE 0
+		END AS classRevenueMoney,
+		CASE
+		WHEN cr.type IN (1, 8)
+		THEN cr.money
+		ELSE 0
+		END AS classRevenueInputMoney,
+		CASE
+		WHEN cr.type IN (6)
+		THEN cr.money
+		ELSE 0
+		END AS classRevenueOutMoney
+		FROM
+		charge_record cr,
+		teach_class tc,
+		school sch,
+		course co,
+		study_grade sg,
+		study_section ss,
+		`SUBJECT` s
+		WHERE cr.`class_id` = tc.`CLASS_ID`
+		AND tc.`school_id` = sch.`SCHOOL_ID`
+		AND tc.`COURSE_ID` = co.`COURSE_ID`
+		AND tc.`XUE_KES_ID` = s.`subject_id`
+		AND tc.`NIAN_JIS_ID` = sg.`grade_id`
+		AND sg.`SECTION_ID` = ss.`SECTION_ID`
+		AND cr.type IN (1, 6, 8)
+		AND tc.TEACH_METHOD != 2
+		AND cr.account_type = 2
+		<if test="manageModel != null">
+			AND tc.manage_model = #{manageModel}
+		</if>
+		UNION
+		ALL
+		SELECT
+		<include refid="charge_record_data"/>
+		CASE
+		WHEN cr.type IN (1, 8)
+		THEN cr.money /
+		<include refid="charge_record_count"/>
+		WHEN cr.type IN (6)
+		THEN - cr.money /
+		<include refid="charge_record_count"/>
+		ELSE 0
+		END AS classRevenueMoney,
+		CASE
+		WHEN cr.type IN (1, 8)
+		THEN cr.money /
+		<include refid="charge_record_count"/>
+		ELSE 0
+		END AS classRevenueInputMoney,
+		CASE
+		WHEN cr.type IN (6)
+		THEN cr.money /
+		<include refid="charge_record_count"/>
+		ELSE 0
+		END AS classRevenueOutMoney
+		FROM
+		charge_record cr,
+		teach_class tc,
+		school sch,
+		course co,
+		course_grade cg,
+		study_grade sg,
+		study_section ss,
+		course_subject cs,
+		`SUBJECT` s
+		WHERE cr.`class_id` = tc.`CLASS_ID`
+		AND tc.`school_id` = sch.`SCHOOL_ID`
+		AND tc.`COURSE_ID` = co.`COURSE_ID`
+		AND co.`COURSE_ID` = cs.`course_id`
+		AND cs.`subject_id` = s.`SUBJECT_ID`
+		AND co.`COURSE_ID` = cg.`course_id`
+		AND cg.`grade_id` = sg.`GRADE_ID`
+		AND sg.`SECTION_ID` = ss.`SECTION_ID`
+		AND cr.type IN (1, 6, 8)
+		AND tc.TEACH_METHOD = 2
+		AND cr.account_type = 2
+		<if test="manageModel != null">
+			AND tc.manage_model = #{manageModel}
+		</if>
+		) A
+		WHERE 1=1
+		<if test="startDate != null and startDate != ''">
+			AND A.create_date &gt;= #{startDate}
+		</if>
+		<if test="endDate != null and endDate != ''">
+			AND A.create_date &lt; DATE_ADD(#{endDate},INTERVAL 1 DAY)
+		</if>
+		<if test="schoolIds!=null">
+			and A.school_id in
+			<foreach collection="schoolIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="subjectIds!=null">
+			and A.SUBJECT_ID in
+			<foreach collection="subjectIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="teachMethods!=null">
+			and A.TEACH_METHOD in
+			<foreach collection="teachMethods" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="courseIds!=null">
+			and A.COURSE_ID in
+			<foreach collection="courseIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="gradeIds!=null">
+			and A.grade_id in
+			<foreach collection="gradeIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="sectionIds!=null">
+			and A.SECTION_ID in
+			<foreach collection="sectionIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="classIds!=null">
+			and A.CLASS_ID in
+			<foreach collection="classIds" index="index" item="item" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="searchType != null and searchType == 0">
+			GROUP BY A.school_id
+		</if>
+		<if test="searchType != null and searchType == 1">
+			GROUP BY A.SUBJECT_ID
+		</if>
+		<if test="searchType != null and searchType == 2">
+			GROUP BY A.SECTION_ID
+		</if>
+		<if test="searchType != null and searchType == 3">
+			GROUP BY A.grade_id
+		</if>
+		<if test="searchType != null and searchType == 4">
+			GROUP BY A.TEACH_METHOD
+		</if>
+		<if test="searchType != null and searchType == 5">
+			GROUP BY A.COURSE_ID
+		</if>
+		<if test="searchType != null and searchType == 6">
+			GROUP BY A.`CLASS_ID`
+		</if>
+		) bb0 GROUP by bb0.itemName) bb1
+
+	</select>
+
+</mapper>

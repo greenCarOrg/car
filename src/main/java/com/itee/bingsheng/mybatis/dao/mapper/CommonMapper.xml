@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.itee.bingsheng.mybatis.dao.CommonDao" >
+
+
+	<insert id="saveSmsLog" parameterType="java.util.HashMap"  useGeneratedKeys="true" keyColumn="id" keyProperty="id">
+			INSERT INTO `bingsheng`.`sms_log` (`phone_number`, `create_time`, `verify_code`, `return_code`, `code`) VALUES (#{phone_number}, #{create_time}, ${verify_code}, #{return_code}, #{code});
+	</insert>
+
+	<select id="getRegion" parameterType="Object" resultType="java.util.HashMap">
+		SELECT * from region where `level`=#{level}
+		<if test="parentId!=null">
+			AND parent_id = #{parentId}
+		</if>
+	</select>
+
+	<select id="getUserAddress" parameterType="java.lang.Integer" resultType="java.util.HashMap">
+		select
+		ur.address ,
+		ur.id,
+		ur.mobile,
+		ur.postcode,
+		ur.consignee,
+		ur.mobile,
+		(SELECT r.`name` from region r where r.id=ur.province) province,
+		(SELECT r.`name` from region r where r.id=ur.city) city,
+		(SELECT r.`name` from region r where r.id=ur.district) district ,
+		(SELECT r.`name` from region r where r.id=ur.twon) town
+		 from user_address ur where user_id=#{userId}
+	</select>
+	<select id="findUserAddress" parameterType="Object" resultType="java.util.HashMap">
+		select
+		ur.address ,
+		ur.id,
+		ur.mobile,
+		ur.postcode,
+		ur.consignee,
+		ur.mobile,
+		ur.province,
+		ur.city,
+		ur.district,
+		ur.twon,
+		ur.user_id
+		from user_address ur
+		where 1=1
+		<if test="userId!=null">
+			and ur.user_id =#{userId}
+		</if>
+		<if test="isDefault!=null">
+			and ur.is_default =#{isDefault}
+		</if>
+	</select>
+
+	<update id="updateUserDefaultAddress" parameterType="Object" >
+		update user_address set is_default=1 where id=#{addressId} and user_id=#{userId}
+	</update>
+
+	<update id="updateUserDefaultAddressCancel" parameterType="Object" >
+		update user_address set is_default=0 where user_id=#{userId}
+	</update>
+
+	<insert id="addUserAddress" parameterType="java.util.HashMap"  useGeneratedKeys="true" keyColumn="id" keyProperty="id">
+		INSERT INTO `user_address` (`user_id`, `consignee`, `province`, `city`, `district`, `twon`, `address`, `postcode`, `mobile`, `is_default`) VALUES(#{userId},#{consignee},#{province},#{city},#{district},#{twon}, #{address},#{postcode},#{mobile}, #{is_default})
+	</insert>
+
+	<select id="getShipping" parameterType="Object" resultType="java.util.HashMap">
+		SELECT * from shipping where `enabled`=1
+	</select>
+
+
+
+	<insert id="saveIntefaceLog" parameterType="java.util.HashMap"  useGeneratedKeys="true" keyColumn="id" keyProperty="id">
+		INSERT INTO `interface_log` ( `name`, `create_time`, `ip`,`excute_time`,`address`,`jwd`) VALUES ( #{name}, now(), #{ip},#{excuteTime},#{address},#{jwd})
+	</insert>
+
+
+	<select id="getInterfaceLogList" parameterType="Object" resultType="java.util.HashMap">
+		select   id,name,ip,excute_time,DATE_FORMAT(create_time,'%Y-%m-%d %H:%i:%S') create_time,address,jwd from `interface_log`
+		<if test="name!=null and name!=''">
+			where name like concat('%',trim('${name}'),'%')
+		</if>
+		order by create_time DESC
+		limit #{page},#{pageSize}
+	</select>
+
+
+	<select id="getInterfaceLogCount" parameterType="Object" resultType="java.lang.Integer">
+		select count(1) from `interface_log`
+		<if test="name!=null">
+			where name like concat('%',trim('${name}'),'%')
+		</if>
+	</select>
+</mapper>

@@ -1,0 +1,8 @@
+#sidebar_main .sidebar_main_header {
+    height: 50px;
+    border-bottom: 1px solid rgba(0, 0, 0, .12);
+    margin-bottom: 20px;
+    background: #1976d2;
+    box-shadow: 0 3px 6px rgba(0, 0, 0, .16), 0 3px 6px rgba(0, 0, 0, .23);
+}
+#sidebar_main{ background-color: #D6E8FE;}

@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+		PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+		"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.itee.bingsheng.mybatis.dao.SysAdminUserMybatisDao" >
+
+	<resultMap id="sysUser" type="com.itee.bingsheng.entity.SysUser">
+		<result column="id" property="id" javaType="java.lang.Integer"/>
+		<result column="user_name" property="userName" javaType="java.lang.String"/>
+		<result column="password" property="password" javaType="java.lang.String"/>
+		<result column="status" property="status" javaType="java.lang.Integer"/>
+		<result column="create_time" property="createTime" javaType="java.util.Date"/>
+		<result column="update_time" property="updateTime" javaType="java.util.Date"/>
+		<result column="last_operator" property="lastOperator" javaType="java.lang.String"/>
+		<result column="role_id" property="roleId" javaType="java.lang.Integer"/>
+		<result column="last_login_time" property="lastLoginTime" javaType="java.util.Date"/>
+		<result column="last_login_ip" property="lastLoginIp" javaType="java.lang.String"/>
+		<result column="real_name" property="realName" javaType="java.lang.String"/>
+		<result column="phone" property="phone" javaType="java.lang.String"/>
+		<result column="role_name" property="roleName" javaType="java.lang.String"/>
+	</resultMap>
+
+
+
+
+	<sql id="Base_Column_List">
+		id,user_name,password,status,create_time,update_time,last_operator,role_id,last_login_time,last_login_ip,real_name,phone
+	</sql>
+
+	<sql id="Base_UserColumn_List">
+		a.id,a.user_name,a.password,a.status,a.create_time,a.update_time,a.last_operator,a.role_id,a.last_login_time,a.last_login_ip,a.real_name,a.phone
+	</sql>
+
+	<!--查询角色信息 -->
+	<select id="querySysAdminUser" parameterType="java.lang.String" resultMap="sysUser">
+		SELECT
+		<include refid="Base_Column_List"/>
+		FROM sys_user
+		WHERE 1=1 AND status = 1
+		AND user_name = #{userName}
+	</select>
+
+	<!--查询所有的角色信息 -->
+	<select id="querySysUserList" parameterType="Object" resultMap="sysUser">
+		SELECT
+		<include refid="Base_UserColumn_List"/>,b.role_name
+		FROM sys_user a
+		LEFT JOIN sys_role b
+		ON a.role_id = b.id
+		WHERE a.id!=1
+		ORDER BY a.create_time DESC
+		LIMIT #{page},#{pageSize}
+	</select>
+
+	<!--查询用户信息 -->
+	<select id="querySysUserById" parameterType="java.lang.Integer" resultType="com.itee.bingsheng.entity.SysUser">
+		SELECT
+		<include refid="Base_Column_List"/>
+		FROM sys_user
+		WHERE 1=1 AND status = 1
+		AND id = #{id}
+	</select>
+
+
+	<!--插入角色信息记录 -->
+	<insert id="insertSysUser" parameterType="com.itee.bingsheng.entity.SysUser" keyProperty="id"
+			useGeneratedKeys="true">
+		insert INTO sys_user(user_name,password,status,create_time,update_time,last_operator,role_id,last_login_time,last_login_ip,real_name,phone)
+		VALUES (#{userName},#{password},#{status},#{createTime},#{updateTime},#{lastOperator},#{roleId},#{lastLoginTime},#{lastLoginIp},#{realName},#{phone})
+	</insert>
+
+	<update id="editSysUser" parameterType="com.itee.bingsheng.entity.SysUser" >
+		UPDATE
+		sys_user
+		SET
+		user_name = #{userName},
+		real_name = #{realName},
+		phone = #{phone},
+		last_login_time = #{lastLoginTime},
+		last_login_ip = #{lastLoginIp},
+		update_time = #{updateTime},
+		last_operator = #{lastOperator},
+		role_id = #{roleId}
+		WHERE user_name = #{userName} ;
+
+	</update>
+
+	<!--统计所有的角色信息数量 -->
+	<select id="querySysUserCount" resultType="java.lang.Integer">
+		SELECT COUNT(*)
+		FROM sys_user a
+		LEFT JOIN sys_role b
+		ON a.role_id = b.id
+		WHERE 1=1
+	</select>
+
+	<!--更新角色信息 -->
+	<update id="updateSysUserStatus" parameterType="Object">
+		update sys_user set status = #{status},update_time = #{updateTime},last_operator = #{lastOperator} where id = #{id}
+	</update>
+
+	<!--更新角色信息 -->
+	<update id="updateSysUserLoginInfo" parameterType="Object">
+		update sys_user set last_login_ip = #{lastLoginIp},update_time = #{updateTime},last_login_time =#{lastLoginTime} where id=#{id}
+	</update>
+
+</mapper>

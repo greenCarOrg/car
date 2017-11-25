@@ -1,0 +1,14 @@
+.canshu{color: #727272;font-size: 12px;    padding-bottom: 10px;}
+.padb{padding-bottom: 0;}
+.xc_way{color:#000;font-size: 15px;}
+hr.mat10{margin:12px 0;}
+.text_right{text-align: right;}
+.marl{margin-left: 2%;}
+.marl20{margin-left: 4%;}
+select.subject{
+    width: 70%;
+    padding: 7px;
+    font-size: 14px;
+}
+.sf_hour{padding: 7px;width: 40%;}
+.sf_hour2{padding: 7px;width: 23%;}

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xmlns:beans="http://www.springframework.org/schema/beans"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="
+		http://www.springframework.org/schema/beans
+		http://www.springframework.org/schema/beans/spring-beans-4.1.xsd
+		http://www.springframework.org/schema/util
+		http://www.springframework.org/schema/util/spring-util-4.1.xsd
+		http://www.springframework.org/schema/context
+		http://www.springframework.org/schema/context/spring-context-4.1.xsd
+	">
+
+    <context:property-placeholder location="classpath*:application.properties"/>
+
+
+    <!-- 分账系统 公共配置,ps:后续配置，请在此添加
+    <bean id="wxpayConfigBean" class="com.itee.bingsheng.pay.weixin.bean.WxpayConfigBean">
+        <constructor-arg name="configMaps">
+            <util:map map-class="java.util.HashMap">
+                微信开发平台应用id
+                <entry key="appId" value="#{wxpayConfig.appId}"/>
+                 微信开发平台应用id
+                <entry key="mchId" value="#{wxpayConfig.mchId}"/>
+                统一下单接口地址(获取订单二维码)
+                <entry key="reqUrl" value="#{wxpayConfig.reqUrl}"/>
+                 异步消息接收地址
+                <entry key="notifyUrl" value="#{wxpayConfig.notifyUrl}"/>
+                 商户号对应的密钥
+                <entry key="partnerKey" value="#{wxpayConfig.partnerKey}"/>
+                 查询订单接口地址
+                <entry key="orderQuerUrl" value="#{wxpayConfig.orderQuerUrl}"/>
+
+            </util:map>
+        </constructor-arg>
+    </bean>-->
+
+    <!--微信支付参数配置文件-->
+    <beans:beans>
+        <util:properties id="wxpayConfig" location="classpath:application.properties"/>
+        <beans:bean id="wxPayService" class="com.itee.bingsheng.pay.weixin.service.impl.WXPayServiceImpl">
+            <beans:property name="appId" value="#{wxpayConfig.appId}"/>
+            <beans:property name="mchId" value="#{wxpayConfig.mchId}"/>
+            <beans:property name="partnerKey" value="#{wxpayConfig.partnerKey}"/>
+            <beans:property name="notifyUrl" value="#{wxpayConfig.notifyUrl}"/>
+            <beans:property name="reqUrl" value="#{wxpayConfig.reqUrl}"/>
+            <beans:property name="orderQuerUrl" value="#{wxpayConfig.orderQuerUrl}"/>
+            <beans:property name="closeOrderUrl" value="#{wxpayConfig.closeOrderUrl}"/>
+            <beans:property name="shorturl" value="#{wxpayConfig.shortUrl}"/>
+            <beans:property name="orderExpireTime" value="#{wxpayConfig.orderExpireTime}"/>
+        </beans:bean>
+    </beans:beans>
+
+</beans>

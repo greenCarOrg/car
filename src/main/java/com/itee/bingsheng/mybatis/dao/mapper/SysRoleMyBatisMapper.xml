@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.itee.bingsheng.mybatis.dao.SysRoleMybatisDao" >
+
+	<resultMap id="sysRole" type="com.itee.bingsheng.entity.SysRole" >
+		<result column="id" property="id" javaType="java.lang.Integer"/>
+		<result column="role_name" property="roleName" javaType="java.lang.String"/>
+		<result column="status" property="status" javaType="java.lang.Integer"/>
+		<result column="create_time" property="createTime" javaType="java.util.Date"/>
+		<result column="update_time" property="updateTime" javaType="java.util.Date"/>
+		<result column="last_operator" property="lastOperator" javaType="java.lang.String"/>
+	</resultMap>
+
+	<sql id="Base_Column_List">
+		id,role_name,status,create_time,update_time,last_operator
+	</sql>
+
+	<!--查询所有的角色信息 -->
+	<select id="querySysRoleList" resultMap="sysRole">
+		SELECT id,role_name,status,create_time,update_time,last_operator
+		FROM sys_role
+		WHERE id!=1 AND status = 1
+	</select>
+
+	<!--插入角色信息记录 -->
+	<insert id="insertSysRole" parameterType="com.itee.bingsheng.entity.SysRole" keyProperty="id" useGeneratedKeys="true">
+		insert INTO sys_role(role_name,status,create_time,update_time,last_operator)
+		VALUES (#{roleName},#{status},#{createTime},#{updateTime},#{lastOperator})
+	</insert>
+
+	<!--统计所有的角色信息数量 -->
+	<select id="querySysRoleCount" parameterType="Object" resultType="java.lang.Integer">
+		SELECT COUNT(*) FROM sys_role WHERE 1=1
+	</select>
+
+	<!--查询角色信息 -->
+	<select id="querySysRole" parameterType="java.lang.Integer" resultMap="sysRole">
+		SELECT <include refid="Base_Column_List" />
+		FROM sys_role WHERE 1=1 AND status = 1 AND id = #{id}
+	</select>
+
+	<!--查询所有的角色信息 -->
+	<select id="queryPageAllSysRole" parameterType="Object" resultMap="sysRole">
+		SELECT  id,role_name,status,create_time,update_time,last_operator FROM sys_role WHERE id!=1 LIMIT #{page},#{pageSize}
+	</select>
+
+	<update id="updateSysRole" parameterType="Object">
+		update sys_role set status = #{status},update_time = #{updateTime},last_operator = #{lastOperator} where id = #{id}
+	</update>
+
+
+</mapper>

@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.itee.bingsheng.mybatis.dao.GoodGroupMybatisDao" >
+
+	<resultMap id="goodgroup" type="com.itee.bingsheng.entity.GoodGroup">
+		<result column="id" property="id" javaType="java.lang.Integer"/>
+		<result column="name" property="name" javaType="java.lang.String"/>
+		<result column="remark" property="remark" javaType="java.lang.String"/>
+		<result column="parent_id" property="parentId" javaType="java.lang.Integer"/>
+		<result column="state" property="state" javaType="java.lang.Integer"/>
+		<result column="img" property="img" javaType="java.lang.String"/>
+		<result column="order_num" property="orderNum" javaType="java.lang.Integer"/>
+		<result column="creator" property="creator" javaType="java.lang.Integer"/>
+		<result column="hot" property="hot" javaType="java.lang.Integer"/>
+		<result column="img_id" property="imgId" javaType="java.lang.String"/>
+	</resultMap>
+
+
+	<select id="queryAllGroup" parameterType="Object" resultType="java.util.HashMap">
+		SELECT	a.id,a.name,a.parent_id,a.img,a.state,a.order_num,a.remark,b.name as parent_name,a.hot	FROM good_group a	LEFT JOIN good_group b ON a.parent_id = b.id WHERE 1=1
+		<if test="isparent != null and isparent ==0 ">
+			and a.parent_id =#{isparent}
+		</if>
+		<if test="name != null and name != ''">
+			and a.name like CONCAT('%','${name}','%' )
+		</if>
+		<if test="hot != null and hot != ''">
+			and a.hot =#{hot}
+		</if>
+		<if test="state != null ">
+			and a.state =#{state}
+		</if>
+		<if test="groupId != null ">
+			and a.parent_id =#{groupId}
+		</if>
+		  GROUP BY a.id
+		  ORDER BY a.order_num ASC
+		<if test="page != null and page != '' and pageSize !=null ">
+			LIMIT #{page},#{pageSize}
+		</if>
+	</select>
+
+
+
+	<select id="queryAllGroupCount" parameterType="Object" resultType="java.lang.Integer">
+		SELECT COUNT(1) FROM good_group a LEFT JOIN good_group b ON a.parent_id = b.id WHERE 1=1
+		<if test="name != null and name != ''">
+			and a.name like CONCAT('%','${name}','%' )
+		</if>
+		<if test="hot != null and hot != ''">
+			and a.hot =#{hot}
+		</if>
+		<if test="isparent != null and isparent ==0 ">
+			and a.parent_id =#{isparent}
+		</if>
+		<if test="state != null ">
+			and a.state =#{state}
+		</if>
+	</select>
+
+
+
+	<select id="queryFirstGroupList" parameterType="Object" resultType="java.util.HashMap">
+		SELECT id,name,parent_id FROM good_group WHERE  state = 1 AND parent_id = 0 ORDER BY order_num ASC,id ASC
+	</select>
+
+
+
+	<insert id="saveGoodGroup"  parameterType="java.util.HashMap"  keyProperty="id" useGeneratedKeys="true" keyColumn="id">
+		INSERT INTO `good_group`(`name`,`parent_id`,`state`,`remark`,`order_num`,`img`,`create_time`,`creator`,`hot`) VALUES (#{name},#{parentId},1,#{remark}, #{orderNum}, #{img},#{createTime}, #{creator},#{hot})
+	</insert>
+
+
+
+	<update id="updateGoodGroup" parameterType="Object">
+		update good_group
+		<set>
+			<if test="remark != null ">
+				`remark`=#{remark},
+			</if>
+			<if test="state != null ">
+				`state`=#{state},
+			</if>
+			<if test="parentId != null ">
+				`parent_id`=#{parentId},
+			</if>
+			<if test="orderNum != null  ">
+				`order_num`=#{orderNum},
+			</if>
+			<if test="hot != null  ">
+				`hot`=#{hot},
+			</if>
+			<if test="name != null  ">
+				`name`=#{name},
+			</if>
+			<if test="img != null  ">
+				`img`=#{img}
+			</if>
+		</set>
+		where id=#{id}
+	</update>
+
+
+	<select id="getGoodGroupById" parameterType="java.lang.Integer" resultMap="goodgroup">
+		  SELECT * from good_group where id=#{id}
+	</select>
+
+
+</mapper>

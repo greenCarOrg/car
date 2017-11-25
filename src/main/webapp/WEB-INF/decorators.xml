@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<decorators defaultdir="/WEB-INF/jsp">
+	<!-- 默认装饰页面, 在需要装饰的页面增加<meta name="decorator" content="default"/> -->
+	<decorator  name="default" page="layouts/default.jsp">
+        <pattern>*.do</pattern>
+	</decorator>
+
+	<!-- 此处用来定义不需要过滤的页面 -->
+	<excludes>
+		<pattern>/pay/*</pattern>
+		<pattern>/pay/weixin/*.jsp*</pattern>
+		<pattern>/index.jsp*</pattern>
+		<pattern>/main.jsp*</pattern>
+		<pattern>/login.do*</pattern>
+		<pattern>/index.do*</pattern>
+		<pattern>/main.do*</pattern>
+		<pattern>/rest/*</pattern>
+
+		<pattern>/chart/*</pattern>
+		<pattern>/cs/*</pattern>
+		<pattern>/chart/chartPage.jsp*</pattern>
+		<pattern>/chart/chartPage.do*</pattern>
+
+
+		<pattern>/content/*</pattern>
+	</excludes>
+</decorators>

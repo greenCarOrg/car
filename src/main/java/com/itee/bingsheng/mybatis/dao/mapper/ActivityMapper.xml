@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.itee.bingsheng.mybatis.dao.ActivityMDao">
+    <resultMap id="dto" type="com.itee.bingsheng.utils.core.metatype.impl.BaseDto"/>
+
+    <!-- 查询活动数量-->
+    <select id="pageCount" parameterType="Object" resultType="java.lang.Long">
+        SELECT
+        count(1)
+        from goods_activity t where 1=1
+        <include refid="page_where"/>
+    </select>
+    <sql id="page_where">
+        <trim suffixOverrides=",">
+            <if test="data.name != null and data.name != ''">
+                and t.name like concat('%',trim('${data.name}'),'%')
+            </if>
+            <if test="data.type != null and data.type != ''">
+                and t.type = ${data.type}
+            </if>
+            <if test="data.start_time != null and data.start_time != ''">
+                AND DATE_FORMAT(t.start_time ,'%Y-%m-%d %H:%i:%S') >= DATE_FORMAT(#{data.start_time} ,'%Y-%m-%d %H:%i:%S')
+            </if>
+            <if test="data.end_time != null and data.end_time != ''">
+                AND DATE_FORMAT(t.end_time ,'%Y-%m-%d %H:%i:%S') &lt;= DATE_FORMAT(#{data.end_time} ,'%Y-%m-%d %H:%i:%S')
+            </if>
+        </trim>
+    </sql>
+    <!--查询活动数据-->
+    <select id="pageList" parameterType="Object" resultType="java.util.HashMap">
+        SELECT
+            t.id,
+            t.name,
+            t.count,
+            case when t.type=1 then '直接打折'
+            when t.type=2 then '满减送优惠券'
+            end as type,
+            DATE_FORMAT(t.start_time,'%Y-%m-%d %H:%i:%S') as start_time,
+            DATE_FORMAT(t.end_time,'%Y-%m-%d %H:%i:%S') as end_time,
+            t.remark
+        FROM
+          goods_activity t
+        WHERE
+        1 = 1
+        <include refid="page_where"/>
+        order by
+        <if test="sort!= null and sort != ''">
+            ${sort[0].field} ${sort[0].dir},
+        </if>
+        t.start_time desc
+        <if test="page != null and pageSize != null and pageSize != ''">
+            LIMIT ${page},${pageSize}
+        </if>
+    </select>
+    <!-- 添加活动-->
+    <insert id="add" parameterType="Object" keyProperty="id" useGeneratedKeys="true">
+        insert INTO goods_activity(`name`,`type`,`count`,remark,start_time,end_time)
+        VALUES (#{name},#{type},#{count},#{remark},#{start_time},#{end_time})
+    </insert>
+    <update id="update" parameterType="Object" >
+        update goods_activity
+        <set>
+            <if test="name != null ">
+                `name`=#{name},
+            </if>
+            <if test="type != null ">
+                `type`=#{type},
+            </if>
+            <if test="count != null ">
+                `count`=#{count},
+            </if>
+            <if test="start_time != null  ">
+                `start_time`=#{start_time},
+            </if>
+            <if test="end_time != null  ">
+                `end_time`=#{end_time},
+            </if>
+        </set>
+        where id=#{id}
+    </update>
+    <!--查询活动数据-->
+    <select id="findOne" parameterType="Object" resultType="java.util.HashMap">
+        SELECT * FROM goods_activity t WHERE 1=1
+        <if test="id != null and id != ''">
+            and t.id=#{id}
+        </if>
+        <if test="name != null and name != ''">
+            and t.name= #{name}
+        </if>
+    </select>
+    <delete id="delete" parameterType="java.lang.Integer">
+      delete from goods_activity where id = #{0}
+    </delete>
+</mapper>

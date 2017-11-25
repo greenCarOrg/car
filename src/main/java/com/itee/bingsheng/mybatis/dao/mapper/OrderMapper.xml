@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.itee.bingsheng.mybatis.dao.OrderMDao">
+    <resultMap id="dto" type="com.itee.bingsheng.utils.core.metatype.impl.BaseDto"/>
+    <!-- 查询数量-->
+    <select id="pageCount" parameterType="Object" resultType="java.lang.Long">
+        SELECT  count(1) from `order` o LEFT JOIN users u on u.user_id=o.user_id   where 1=1
+        <include refid="page_where"/>
+    </select>
+
+    <sql id="page_where">
+        <trim suffixOverrides=",">
+            <if test="data.order_sn != null and data.order_sn != ''">
+                and o.order_sn like concat('%',trim('${data.order_sn}'),'%')
+            </if>
+            <if test="data.mobile != null and data.mobile != ''">
+                and o.mobile like concat('%',trim('${data.mobile}'),'%')
+            </if>
+            <if test="data.address != null and data.address != ''">
+                and o.address like concat('%',trim('${data.address}'),'%')
+            </if>
+            <if test="data.consignee != null and data.consignee != ''">
+                and o.consignee like concat('%',trim('${data.consignee}'),'%')
+            </if>
+            <if test="data.nickname != null and data.nickname != ''">
+                and u.nickname like concat('%',trim('${data.nickname}'),'%')
+            </if>
+            <if test="data.phone != null and data.phone != ''">
+                and u.phone like concat('%',trim('${data.phone}'),'%')
+            </if>
+            <if test="data.order_status != null and data.order_status != ''">
+                and o.order_status = ${data.order_status}
+            </if>
+            <if test="data.start_time != null and data.start_time != ''">
+                AND DATE_FORMAT(o.add_time ,'%Y-%m-%d %H:%i:%S') >= DATE_FORMAT(#{data.start_time} ,'%Y-%m-%d %H:%i:%S')
+            </if>
+            <if test="data.end_time != null and data.end_time != ''">
+                AND DATE_FORMAT(o.add_time ,'%Y-%m-%d %H:%i:%S') &lt;= DATE_FORMAT(#{data.end_time} ,'%Y-%m-%d %H:%i:%S')
+            </if>
+        </trim>
+    </sql>
+    <!--查询数据-->
+    <select id="pageList" parameterType="Object" resultType="java.util.HashMap">
+        SELECT
+            o.order_id,
+            o.order_sn,
+            o.consignee,
+            o.address,
+            o.zipcode,
+            o.mobile,
+            o.email,
+            o.shipping_code,
+            o.shipping_name,
+            o.pay_name,
+            o.add_time,
+            o.shipping_time,
+            o.confirm_time,
+            o.pay_time,
+            o.paid_money,
+            o.shipping_price,
+            o.coupon_price,
+            o.total_amount,
+            o.order_amount,
+            u.user_name,
+            u.phone,
+            case when o.order_status=0 then '已下单'
+                 when o.order_status=1 then '订单已完成'
+            end as order_status,
+            case when o.pay_status=0 then '未支付'
+                 when o.pay_status=1 then '支付中'
+                 when o.pay_status=2 then '已支付'
+            end as pay_status,
+            case when o.shipping_status=0 then '未发货'
+                 when o.shipping_status=1 then '发货中'
+                 when o.shipping_status=2 then '已发货'
+            end as shipping_status,
+            (SELECT group_concat(g.goods_name) from order_goods og,goods g where og.goods_id=g.goods_id and o.order_id=og.order_id group by og.order_id) as goods_name
+        from
+        `order` o
+        LEFT JOIN users u on u.user_id=o.user_id
+        WHERE
+        1 = 1
+        <include refid="page_where"/>
+        order by
+        <if test="sort!= null and sort != ''">
+            ${sort[0].field} ${sort[0].dir},
+        </if>
+          o.add_time desc
+        <if test="page != null and pageSize != null and pageSize != ''">
+            LIMIT ${page},${pageSize}
+        </if>
+    </select>
+    <!-- 添加活动-->
+    <insert id="add" parameterType="Object" keyProperty="id" useGeneratedKeys="true">
+        insert INTO order(user_id,order_sn,consignee,province,    city,   district,   address,   mobile,   shipping_code,   shipping_name,   invoice_type,   invoice_title,   invoice_taxcodes,   pay_type,   user_note,   admin_note,add_time)
+        VALUES (#{user_id},#{order_sn},#{consignee},#{province},#{city},#{district},#{address},#{mobile},#{shipping_code},#{shipping_name},#{invoice_type},#{invoice_title},#{invoice_taxcodes},#{pay_type},#{user_note},#{admin_note},now())
+    </insert>
+    <update id="update" parameterType="Object" >
+        update order
+        <set>
+            <if test="title != null ">
+                `title`=#{title},
+            </if>
+            <if test="goods_name != null ">
+                `act_type`=#{goods_name},
+            </if>
+            <if test="goods_price != null ">
+                `goods_price`=#{goods_price},
+            </if>
+            <if test="goods_num != null ">
+                `goods_num`=#{goods_num},
+            </if>
+            <if test="price != null ">
+                `price`=#{price},
+            </if>
+            <if test="buy_num != null ">
+                `buy_num`=#{buy_num},
+            </if>
+            <if test="order_num != null ">
+                `order_num`=#{order_num},
+            </if>
+            <if test="virtual_num != null ">
+                `virtual_num`=#{virtual_num},
+            </if>
+            <if test="rebate != null ">
+                `rebate`=#{rebate},
+            </if>
+            <if test="intro != null ">
+                `intro`=#{intro},
+            </if>
+            <if test="recommended != null ">
+                `recommended`=#{recommended},
+            </if>
+            <if test="start_time != null  ">
+                `start_time`=#{start_time},
+            </if>
+            <if test="end_time != null  ">
+                `end_time`=#{end_time},
+            </if>
+        </set>
+        where id=#{id}
+    </update>
+    <!--查询活动数据-->
+    <select id="findList" parameterType="Object" resultType="java.util.HashMap">
+        SELECT * FROM order t WHERE 1=1
+        <if test="id != null and id != ''">
+            and t.id=#{id}
+        </if>
+        <if test="title != null and title != ''">
+            and t.title= #{title}
+        </if>
+    </select>
+    <delete id="delete" parameterType="java.lang.Integer">
+      delete from order where id = #{0}
+    </delete>
+</mapper>

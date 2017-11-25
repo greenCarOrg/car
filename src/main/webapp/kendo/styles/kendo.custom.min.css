@@ -1,0 +1,19 @@
+.grid-button{
+    padding:0px;
+    border-style:none;
+    background: none;
+    min-width:54px !important;
+}
+
+/*.k-grid td{*/
+    /*border-width:0 0 1px 1px;*/
+/*}*/
+
+/*.k-pager-wrap>.k-link{*/
+    /*border-radius:2px;*/
+    /*-webkit-border-radius: 2px;*/
+/*}*/
+/*.k-pager-numbers .k-state-selected{*/
+    /*border-radius:2px;*/
+    /*-webkit-border-radius: 2px;*/
+/*}*/

@@ -1,0 +1,381 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.itee.bingsheng.mybatis.dao.GoodDao" >
+	<resultMap id="goods" type="com.itee.bingsheng.entity.Goods">
+		<result column="goods_id" property="goodsId" />
+		<result column="cat_id" property="catId" />
+		<result column="extend_cat_id" property="extendCatId" />
+		<result column="goods_sn" property="goodsSn" />
+		<result column="goods_name" property="goodsName" />
+		<result column="click_count" property="clickCount"/>
+		<result column="store_count" property="storeCount" />
+		<result column="weight" property="weight" />
+		<result column="price" property="price"/>
+		<result column="dealerprice" property="dealerprice"/>
+		<result column="keywords" property="keywords"/>
+		<result column="goods_content" property="goodsContent"/>
+		<result column="goods_remark" property="goodsRemark"/>
+		<result column="original_img" property="originalImg"/>
+		<result column="is_real" property="isReal"/>
+		<result column="is_on_sale" property="isOnSale"/>
+		<result column="is_free_shipping" property="isFreeShipping"/>
+		<result column="on_time" property="onTime"/>
+		<result column="sort" property="sort"/>
+		<result column="is_recommend" property="isRecommend"/>
+		<result column="is_new" property="isNew"/>
+		<result column="is_hot" property="isHot"/>
+		<result column="create_by" property="createBy"/>
+		<result column="point" property="point"/>
+        <result column="suppliers_id" property="suppliersId"/>
+        <result column="original_id" property="originalId"/>
+	</resultMap>
+
+	<!-- 插入商品信息 -->
+	<insert id="saveGood" parameterType="java.util.HashMap"  useGeneratedKeys="true" keyColumn="id" keyProperty="id">
+		INSERT INTO `goods` (
+			`cat_id`,
+            `extend_cat_id`,
+            `goods_sn`,
+            `goods_name`,
+            `click_count`,
+            `store_count`,
+            `comment_count`,
+            `weight`,
+            `price`,
+            `dealerprice`,
+            `keywords`,
+            `goods_remark`,
+            `goods_content`,
+            `original_img`,
+            `is_real`,
+            `is_on_sale`,
+            `is_free_shipping`,
+            `sort`,
+            `is_recommend`,
+            `is_new`,
+            `is_hot`,
+            `create_by`,
+            `update_by`,
+            `give_integral`,
+            `suppliers_id`,
+            `sales_sum`,
+            `prom_type`,
+            `commission`,
+            `original_id`,
+            `point`
+		)VALUES(
+				#{catId},
+				#{extendCatId},
+				#{goodsSn},
+				#{goodsName},
+				#{clickCount},
+				#{storeCount},
+				#{commentCount},
+				#{weight},
+				#{price},
+				#{dealerprice},
+				#{keywords},
+				#{goodsRemark},
+				#{goodsContent},
+				#{originalImg},
+				#{isReal},
+				#{isOnSale},
+				#{isFreeShipping},
+				#{sort},
+				#{isRecommend},
+				#{isNew},
+				#{isHot},
+				#{createBy},
+				#{updateBy},
+				#{giveIntegral},
+				#{suppliersId},
+				#{salesSum},
+				#{promType},
+				#{commission},
+				#{originalId},
+				#{point});
+	</insert>
+
+	<!-- 更新商品信息 -->
+	<update id="updateGood" parameterType="Object">
+		update `goods`
+		<set>
+			<if test="goodsSn != null ">
+				`goods_sn`=#{goodsSn}
+			</if>
+			<if test="goodsName != null ">
+				,`goods_name`=#{goodsName}
+			</if>
+			<if test="keywords != null ">
+				,`keywords`=#{keywords}
+			</if>
+			<if test="clickCount != null ">
+				,`click_count`=#{clickCount}
+			</if>
+			<if test="suppliersId != null ">
+				,`suppliers_id`=#{suppliersId}
+			</if>
+			<if test="promType != null ">
+				,`prom_type`=#{promType}
+			</if>
+			<if test="giveIntegral != null ">
+				,`give_integral`=#{giveIntegral}
+			</if>
+			<if test="price != null ">
+				,`price`=#{price}
+			</if>
+			<if test="dealerprice != null ">
+				,`dealerprice`=#{dealerprice}
+			</if>
+			<if test="storeCount != null ">
+				,`store_count`=#{storeCount}
+			</if>
+			<if test="weight != null ">
+				,`weight`=#{weight}
+			</if>
+			<if test="sort != null ">
+				,`sort`=#{sort}
+			</if>
+			<if test="isReal != null ">
+				,`is_real`=#{isReal}
+			</if>
+			<if test="isOnSale != null ">
+				,`is_on_sale`=#{isOnSale}
+			</if>
+			<if test="isHot != null  ">
+				,`is_hot`=#{isHot}
+			</if>
+			<if test="isFreeShipping != null  ">
+				,`is_free_shipping`=#{isFreeShipping}
+			</if>
+			<if test="isRecommend != null  ">
+				,`is_recommend`=#{isRecommend}
+			</if>
+			<if test="isNew != null  ">
+				,`is_new`=#{isNew}
+			</if>
+			<if test="goodsRemark != null  ">
+				,`goods_remark`=#{goodsRemark}
+			</if>
+			<if test="commission != null  ">
+				,`commission`=#{commission}
+			</if>
+			<if test="goodsContent != null ">
+				,`goods_content`=#{goodsContent}
+			</if>
+			<if test="originalImg != null ">
+                ,`original_img`=#{originalImg}
+			</if>
+			<if test="originalId != null ">
+                ,`original_id`=#{originalId}
+			</if>
+			<if test="point != null ">
+                ,`point`=#{point}
+			</if>
+            <if test="catId != null ">
+                ,`cat_id`=#{catId}
+            </if>
+            <if test="extendCatId != null ">
+                ,`extend_cat_id`=#{extendCatId}
+            </if>
+		</set>
+		where goods_id=#{goodsId}
+	</update>
+
+
+	<select id="queryGoodList" parameterType="Object" resultType="java.util.HashMap">
+		SELECT
+		`goods_id`,
+		`cat_id`,
+		`extend_cat_id`,
+		`goods_sn`,
+		`goods_name`,
+		`click_count`,
+		`store_count`,
+		`comment_count`,
+		`weight`,
+		`price`,
+		`dealerprice`,
+		`keywords`,
+		`goods_remark`,
+		`goods_content`,
+		`original_img`,
+		IFNULL(`is_real`,0) AS `is_real`,
+		IFNULL(`is_on_sale`,0) AS `is_on_sale`,
+		IFNULL(`is_free_shipping`,0) AS `is_free_shipping`,
+		`on_time`,
+		`sort`,
+		IFNULL(`is_recommend`,0) AS `is_recommend`,
+		IFNULL(`is_new`,0) AS `is_new`,
+		IFNULL(`is_hot`,0) AS `is_hot`,
+		`last_update`,
+		`give_integral`,
+		`suppliers_id`,
+		`sales_sum`,
+		IFNULL(`prom_type`,0) AS `prom_type`,`original_id`,
+		`commission`,
+		(select m.name from manufactor m where m.id=g.suppliers_id) serviceName
+
+		FROM goods g
+		<where>
+			<if test="goods_id!=null">
+				AND g.goods_id = #{goods_id}
+			</if>
+			<if test="goods_name!=null">
+				AND g.goods_name LIKE CONCAT('%',#{goods_name},'%')
+			</if>
+			<if test="is_on_sale!=null">
+				AND g.is_on_sale = #{is_on_sale}
+			</if>
+			<if test="is_free_shipping!=null">
+				AND g.is_free_shipping =#{is_free_shipping}
+			</if>
+			<if test="is_recommend!=null">
+				AND g.is_recommend =#{is_recommend}
+			</if>
+			<if test="is_new!=null">
+				AND g.is_new =#{is_new}
+			</if>
+			<if test="is_hot!=null">
+				AND g.is_hot =#{is_hot}
+			</if>
+			<if test="cat_id!=null">
+				and g.cat_id=#{cat_id}
+			</if>
+			<if test="suppliers_id!=null"><!--供应商-->
+				and g.suppliers_id=#{suppliers_id}
+			</if>
+		</where>
+	  	<if test="orderBy==null">
+			ORDER BY g.last_update DESC
+		</if>
+		<if test="orderBy!=null">
+			${pager.orderDirection}
+		</if>
+		<if test="pager != null and pager.mysqlQueryCondition != null and pager.mysqlQueryCondition != ''">
+			${pager.mysqlQueryCondition}
+		</if>
+	</select>
+
+	<select id="queryGoodListCount" parameterType="Object" resultType="java.lang.Integer">
+		select count(1) FROM goods g
+		<where>
+			<if test="goods_id!=null">
+				AND g.goods_id = #{goods_id}
+			</if>
+			<if test="goods_name!=null">
+				AND g.goods_name LIKE CONCAT('%',#{goods_name},'%')
+			</if>
+			<if test="is_on_sale!=null">
+				AND g.is_on_sale = #{is_on_sale}
+			</if>
+			<if test="is_free_shipping!=null">
+				AND g.is_free_shipping =#{is_free_shipping}
+			</if>
+			<if test="is_recommend!=null">
+				AND g.is_recommend =#{is_recommend}
+			</if>
+			<if test="is_new!=null">
+				AND g.is_new =#{is_new}
+			</if>
+			<if test="is_hot!=null">
+				AND g.is_hot =#{is_hot}
+			</if>
+		</where>
+	</select>
+
+	<select id="getGoodsList" parameterType="Object" resultMap="goods">
+		SELECT
+		`goods_id`,
+		`cat_id`,
+		`extend_cat_id`,
+		`goods_sn`,
+		`goods_name`,
+		`click_count`,
+		`store_count`,
+		`comment_count`,
+		`weight`,
+		`price`,
+		`dealerprice`,
+		`keywords`,
+		`goods_remark`,
+		`goods_content`,
+		`original_img`,
+		IFNULL(`is_real`,0) AS `is_real`,
+		IFNULL(`is_on_sale`,0) AS `is_on_sale`,
+		IFNULL(`is_free_shipping`,0) AS `is_free_shipping`,
+		`on_time`,
+		`sort`,
+		IFNULL(`is_recommend`,0) AS `is_recommend`,
+		IFNULL(`is_new`,0) AS `is_new`,
+		IFNULL(`is_hot`,0) AS `is_hot`,
+		`last_update`,
+		`give_integral`,
+		`suppliers_id`,
+		`sales_sum`,
+		IFNULL(`prom_type`,0) AS `prom_type`,`original_id`,
+		`commission`,
+		point
+		FROM goods g
+		<where>
+			<if test="goods_id!=null">
+				AND g.goods_id = #{goods_id}
+			</if>
+			<if test="goods_name!=null">
+				AND g.goods_name LIKE CONCAT('%',#{goods_name},'%')
+			</if>
+			<if test="is_on_sale!=null">
+				AND g.is_on_sale = #{is_on_sale}
+			</if>
+			<if test="is_free_shipping!=null">
+				AND g.is_free_shipping =#{is_free_shipping}
+			</if>
+			<if test="is_recommend!=null">
+				AND g.is_recommend =#{is_recommend}
+			</if>
+			<if test="is_new!=null">
+				AND g.is_new =#{is_new}
+			</if>
+			<if test="is_hot!=null">
+				AND g.is_hot =#{is_hot}
+			</if>
+		</where>
+	</select>
+
+
+	<!-- 搜索商品信息 -->
+	<select id="searchGoods" parameterType="Object" resultType="java.util.HashMap">
+		SELECT g.goods_id,goods_name from goods g
+		<where>
+			<if test="goods_name!=null">
+				g.goods_name like CONCAT('%',#{goods_name},'%')
+			</if>
+		</where>
+	</select>
+
+
+	<select id="getGoodAttr" parameterType="Object" resultType="java.util.HashMap">
+		SELECT * from goods_attr where good_id=#{goodsId}
+	</select>
+
+
+	<insert id="saveGoodAttr" parameterType="Object" keyProperty="attr_id" useGeneratedKeys="true">
+		INSERT INTO `goods_attr` (`good_id`, `attr`, `price`, `img`, `num`, `state`) VALUES (#{goodId}, #{attr}, #{price}, #{img}, #{num}, 1);
+	</insert>
+
+	<!-- 更新购物车商品状态信息 -->
+	<update id="updateGoodCartState" parameterType="Object">
+		update goods_cart set state=#{state}
+		<if test="attrId !=null">
+			where  attr_id=#{attrId}
+		</if>
+		<if test="goodsId!=null ">
+			where goods_id=#{goodsId}
+		</if>
+	</update>
+
+	<!-- 更新商品明细信息 -->
+	<update id="updateGoodAttr" parameterType="Object">
+		update goods_attr set state=#{state}  where attr_id=#{attrId}
+	</update>
+</mapper>

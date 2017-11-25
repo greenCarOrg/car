@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.itee.bingsheng.mybatis.dao.CycleDao" >
+
+	<resultMap id="cycle" type="com.itee.bingsheng.entity.Cycle">
+		<result column="id" property="id"/>
+		<result column="level" property="level" />
+		<result column="state" property="state"/>
+		<result column="creator" property="creator" />
+		<result column="remark" property="remark" />
+		<result column="create_time" property="createTime"/>
+		<result column="img" property="img" />
+	</resultMap>
+
+
+
+	<select id="queryAllCycle" parameterType="Object" resultType="java.util.HashMap">
+		select m.id,
+		concat(m.`level`,'周')level,
+		m.`remark`,
+		m.state,
+		su.user_name,
+		DATE_FORMAT(m.create_time,'%Y-%m-%d %H:%i:%S') create_time,
+		m.img from cycle m LEFT JOIN sys_user su on m.creator=su.id where 1=1
+		<if test="state != null and state !='' ">
+			and	m.`state` =#{state}
+		</if>
+		order by m.level asc
+		<if test="page != null and pageSize!=null">
+			limit  #{page},#{pageSize}
+		</if>
+	</select>
+
+	<insert id="saveCycle" parameterType="java.util.HashMap"  useGeneratedKeys="true" keyColumn="id" keyProperty="id">
+		INSERT INTO `cycle` (`level`, `state`, `creator`,`img`,`remark`,`create_time`) VALUES (#{level},#{state},#{creator},#{img},#{remark},now())
+	</insert>
+
+
+	<update id="updateCycle" parameterType="Object" >
+		update cycle
+		<set>
+			<if test="level != null ">
+				`level`=#{level},
+			</if>
+			<if test="remark != null ">
+				`remark`=#{remark},
+			</if>
+			<if test="img != null ">
+				`img`=#{img},
+			</if>
+			<if test="state != null ">
+				`state`=#{state}
+			</if>
+		</set>
+		where id=#{id}
+	</update>
+
+
+	<select id="getAllCount" parameterType="Object" resultType="java.lang.Integer">
+		select count(1) from cycle where 1=1
+		<if test="state != null and state !='' ">
+			and	`state` =#{state}
+		</if>
+	</select>
+
+
+
+	<select id="getCycleById" parameterType="java.lang.Integer" resultMap="cycle">
+		select * from cycle where id=#{id}
+	</select>
+
+
+	<delete id="deleteCycleById" parameterType="java.lang.Integer" >
+		DELETE from cycle where id=#{id}
+	</delete>
+</mapper>

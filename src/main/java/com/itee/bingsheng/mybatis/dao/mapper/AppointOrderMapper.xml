@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.itee.bingsheng.mybatis.dao.AppointOrderDao">
+
+
+    <select id="getAppointOrderList" parameterType="Object" resultType="java.util.HashMap">
+        select ao.id,DATE_FORMAT( ao.create_time,'%Y-%m-%d %H:%i:%S')create_time,DATE_FORMAT( ao.appoint_time,'%Y-%m-%d %H:%i:%S') appoint_time, DATE_FORMAT( ao.update_time,'%Y-%m-%d %H:%i:%S')update_time,
+        ao.bond,CASE WHEN ao.state=1 then '已下单' WHEN ao.state=2 then '用户已取消' WHEN ao.state=3 THEN '月嫂取消预约' WHEN ao.state=4 THEN '订单完成' END state,ao.remark,
+        u.user_name,u.phone,m.`name` as mname,m.phone as mphone,ao.type,ao.address
+        from  appoint_order ao LEFT JOIN users u on ao.user_id=u.user_id LEFT JOIN maternity_matron m on ao.maternity_id=m.id where 1=1
+        <if test=" name!= null and name != ''">
+            and m.name like concat('%',trim('${name}'),'%')
+        </if>
+        <if test=" phone!= null and phone != ''">
+            and m.phone like concat('%',trim('${phone}'),'%')
+        </if>
+        <if test=" state!= null and state != ''">
+            and ao.state =#{state}
+        </if>
+        limit #{page},#{pageSize}
+    </select>
+
+    <select id="getAppointOrderCount" parameterType="Object" resultType="java.lang.Integer">
+        select count(1) from  appoint_order ao LEFT JOIN users u on ao.user_id=u.user_id LEFT JOIN maternity_matron m on ao.maternity_id=m.id where 1=1
+        <if test=" name!= null and name != ''">
+            and m.name like concat('%',trim('${name}'),'%')
+        </if>
+        <if test=" phone!= null and phone != ''">
+            and m.phone like concat('%',trim('${phone}'),'%')
+        </if>
+        <if test=" state!= null and state != ''">
+            and ao.state =#{state}
+        </if>
+    </select>
+
+
+</mapper>

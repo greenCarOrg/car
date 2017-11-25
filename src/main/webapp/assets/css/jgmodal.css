@@ -1,0 +1,25 @@
+.uk-modal-dialog{width:501px;text-align:center;padding:5px 0 20px 0;}
+.layer_title{text-align: center;font-size: 18px;color:#666666}
+.my_btn{
+    padding: 4px 60px;
+}
+.jigou {
+    width:320px;
+    height: 140px;
+    overflow: auto;
+    margin: 0 auto;
+}
+.login_icon {
+    width: 75px;
+    height: 70px;
+    display: inline-block;
+    float: left;
+    text-align: center;
+}
+.login_icon img {
+    display: block;
+    margin: 0 auto;
+    padding-bottom: 5px;
+    margin-bottom: 2px;
+}
+.login_icon  img:hover{border: 1px solid deepskyblue;}

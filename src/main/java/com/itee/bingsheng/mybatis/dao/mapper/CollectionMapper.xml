@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.itee.bingsheng.mybatis.dao.CollectionDao" >
+
+
+	<select id="queryAllCollection" parameterType="Object" resultType="java.util.HashMap">
+		SELECT	c.id,c.maternity_id,m.name,c.user_id,u.user_name, c.state,DATE_FORMAT(c.create_time,'%Y-%m-%d %H:%i:%S') AS createTime,DATE_FORMAT(c.update_time,'%Y-%m-%d %H:%i:%S') AS updateTime FROM maternity_collection c LEFT JOIN maternity_matron m on c.maternity_id=m.id LEFT JOIN users u on c.user_id=u.user_id WHERE	1 = 1
+		<if test="name!=null and name!='' ">
+			AND m.name LIKE CONCAT('%',#{name},'%')
+		</if>
+		limit  #{page},#{pageSize}
+	</select>
+
+	<insert id="saveCollection" parameterType="java.util.HashMap"  useGeneratedKeys="true" keyColumn="id" keyProperty="id">
+		INSERT INTO `maternity_collection` (`maternity_id`, `user_id`, `create_time`, `state`, `update_time`) VALUES (#{maternityId}, #{userId}, now(), 1, now())
+	</insert>
+
+
+
+	<select id="getAllCount" parameterType="Object" resultType="java.lang.Integer">
+		select count(1) from maternity_collection where 1=1
+		<if test="name!=null and name!='' ">
+			AND m.name LIKE CONCAT('%',#{name},'%')
+		</if>
+	</select>
+
+	<update id="cancelCollection" parameterType="Object" >
+		update maternity_collection set state=0 ,update_time=now() where user_id=#{userId} and maternity_id=#{maternityId}
+	</update>
+
+
+</mapper>

@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.itee.bingsheng.mybatis.dao.WithdrawDao" >
+
+
+
+	<select id="queryAllWithdraw" parameterType="Object" resultType="java.util.HashMap">
+		SELECT
+		w.id,	w.money,
+		CASE
+		WHEN w.state = 1 THEN	'申请中'
+		WHEN w.state = 2 THEN '提现成功'
+		WHEN w.state = 3 THEN	'提现失败'END AS state,
+		CASE
+		WHEN w.type = 1 THEN	'支付宝'
+		WHEN w.type = 2 THEN	'微信'
+		WHEN w.type = 3 THEN	'银行' end AS type,
+		DATE_FORMAT(w.create_time,'%Y-%m-%d %H:%i:%S') create_time,
+		DATE_FORMAT(w.update_time,'%Y-%m-%d %H:%i:%S') update_time,
+		su.real_name,
+		u.nickname,
+		u.user_money,
+		u.frozen_money,
+		w.account_name
+		FROM	withdraw w
+		LEFT JOIN users u ON w.user_id = u.user_id
+		LEFT JOIN sys_user su ON w.operator = su.id
+		where 1=1
+		<if test="state != null ">
+			and	w.`state`=#{state}
+		</if>
+		<if test="type != null ">
+			and	w.`type`=#{type}
+		</if>
+		ORDER BY	w.update_time DESC
+		limit  #{page},#{pageSize}
+	</select>
+
+
+
+	<update id="updateWithDraw" parameterType="Object" >
+		update withdraw set update_time=now() ,operator=#{operator},state=#{state} WHERE  id=#{id}
+	</update>
+
+
+	<select id="getAllCount" parameterType="Object" resultType="java.lang.Integer">
+		select count(1) from withdraw where 1=1
+		<if test="state != null ">
+			and	`state`=#{state}
+		</if>
+		<if test="type != null ">
+			and	`type`=#{type}
+		</if>
+	</select>
+
+	<update id="updateUserMoney" parameterType="Object" >
+		update withdraw set update_time=now() ,operator=#{operator},state=#{state} WHERE  id=#{id}
+	</update>
+
+</mapper>

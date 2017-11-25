@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.itee.bingsheng.mybatis.dao.FeedbookDao" >
+
+	<select id="getFeedbookCount" parameterType="Object" resultType="java.lang.Integer">
+		select count(1) from feedbook f where 1=1
+		<if test="phone!=null">
+			AND phone = #{phone}
+		</if>
+		<if test="userId!=null">
+			AND user_id = #{userId}
+		</if>
+	</select>
+
+	<select id="getFeedbookList" parameterType="Object" resultType="java.util.HashMap">
+		select f.id ,f.phone,f.content,f.img,f.state,u.real_name,f.replay,f.name,
+		DATE_FORMAT(f.create_time,'%Y-%m-%d %H:%i:%S')create_time,
+		DATE_FORMAT(f.update_time,'%Y-%m-%d %H:%i:%S')update_time
+		from feedbook f LEFT JOIN sys_user u on f.creator=u.id
+		where 1=1
+		<if test="phone!=null">
+			AND f.phone = #{phone}
+		</if>
+		<if test="userId!=null">
+			AND f.user_id = #{userId}
+		</if>
+		<if test="id!=null">
+			AND f.id = #{id}
+		</if>
+		<if test="page != null and pageSize != null and pageSize != ''">
+			LIMIT ${page},${pageSize}
+		</if>
+	</select>
+
+	<insert id="submitFeedbook" parameterType="java.util.HashMap"  useGeneratedKeys="true" keyColumn="id" keyProperty="id">
+		INSERT INTO `feedbook` (`user_id`,`update_time`, `phone`, `content`, `img`, `replay`) VALUES (#{userId},#{updateTime},#{phone},#{qq},#{content},#{img},#{replay})
+	</insert>
+
+	<update id="updateFeedbook" parameterType="Object" >
+		  UPDATE `feedbook`  SET `update_time`=now(),`replay`=#{replay}, `state`=#{state}, `creator`=#{createor}  WHERE `id`=#{id}
+	</update>
+</mapper>

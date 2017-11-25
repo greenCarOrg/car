@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.itee.bingsheng.mybatis.dao.UserMyBatisDao">
+
+    <resultMap id="userMap" type="com.itee.bingsheng.entity.User" >
+        <result column="user_id" property="userId" javaType="java.lang.Integer"/>
+        <result column="password" property="password" javaType="java.lang.String"/>
+        <result column="paypwd" property="paypwd" javaType="java.lang.String"/>
+        <result column="sex" property="sex" javaType="java.lang.Integer"/>
+        <result column="expect_date" property="expectDate" javaType="java.util.Date"/>
+        <result column="child_birth" property="childBirth" javaType="java.util.Date"/>
+        <result column="user_money" property="userMoney" javaType="java.lang.Double"/>
+        <result column="reg_time" property="regTime" javaType="java.util.Date"/>
+        <result column="last_login" property="lastLogin" javaType="java.util.Date"/>
+        <result column="phone" property="phone" javaType="java.lang.String"/>
+        <result column="oauth" property="oauth" javaType="java.lang.String"/>
+        <result column="openid" property="openid" javaType="java.lang.String"/>
+        <result column="user_name" property="userName" javaType="java.lang.String"/>
+        <result column="head" property="head" javaType="java.lang.String"/>
+        <result column="state" property="state" javaType="java.lang.Integer"/>
+        <result column="token" property="token" javaType="java.lang.String"/>
+        <result column="focus" property="focus" javaType="java.lang.Integer"/>
+        <result column="id_card" property="idCard" javaType="java.lang.String"/>
+    </resultMap>
+
+
+    <select id="queryAllUser" parameterType="Object" resultType="java.util.HashMap">
+        select u.user_id,u.user_name,DATE_FORMAT(u.reg_time,'%Y-%m-%d %H:%i:%S')reg_time,u.phone,u.user_money,u.state,DATE_FORMAT(u.child_birth,'%Y-%m-%d')child_birth,DATE_FORMAT(u.expect_date,'%Y-%m-%d')expect_date,u.state,u.id_card,u.sex from users u where 1=1
+        <if test="phone != null and phone!='' ">
+            and u.`phone`=#{phone}
+        </if>
+        limit #{page},#{pageSize}
+    </select>
+
+    <select id="getAllUserCount" parameterType="Object" resultType="java.lang.Integer">
+        select count(1) from users
+        <if test="phone != null and phone!='' ">
+            where `phone`=#{phone}
+        </if>
+    </select>
+
+    <!-- 通过推荐人手机号码获取推荐人信息-->
+    <select id="getUserByPhone" parameterType="Object" resultMap="userMap">
+        select * from users  where 1=1 and phone =#{0} limit 1
+    </select>
+
+    <!--用户登录获取用户信息-->
+    <select id="userLogin" parameterType="Object" resultMap="userMap">
+        select user_name,sex,DATE_FORMAT(u.child_birth,'%Y-%m-%d')childBirth,DATE_FORMAT(u.expect_date,'%Y-%m-%d')expectDate,user_money,phone,
+        head,state
+        from users  where   phone =#{phone}  and password=#{password}
+    </select>
+
+    <!--保存用户登录日志-->
+    <insert id="saveLoginLog" parameterType="java.util.HashMap"  useGeneratedKeys="true" keyColumn="id" keyProperty="id">
+        INSERT INTO `login_log` ( `user_id`, `create_time`, `last_ip`) VALUES (#{userId},now(), #{lastIp})
+    </insert>
+
+
+    <!--手机端注册用户-->
+    <insert id="registerUser" parameterType="com.itee.bingsheng.entity.User"  useGeneratedKeys="true"  keyColumn="id"  keyProperty="userId">
+      INSERT INTO `users` (`password`, `paypwd`, `sex`, `child_birth`, `expect_date`,`reg_time`, `last_login`, `phone`, `oauth`, `openid`,`head`,`token`, `focus`)
+      VALUES (#{password}, #{paypwd},#{sex},#{childBirth},#{expectDate},NOW(), #{lastLogin}, #{phone},#{oauth},#{openid},#{head}, #{token},#{focus})
+    </insert>
+
+
+    <!--通过用户编号查找用户-->
+    <select id="getUserById" parameterType="Object" resultMap="userMap">
+        select * from users  where  user_id=#{userId}
+    </select>
+
+
+    <!--更新用户信息-->
+    <update id="updateUser" parameterType="Object">
+        update `users`
+        <set>
+            <if test="password != null ">
+                `password`=#{password}
+            </if>
+            <if test="paypwd != null ">
+                ,`paypwd`=#{paypwd}
+            </if>
+        </set>
+        where user_id=#{userId}
+    </update>
+</mapper>

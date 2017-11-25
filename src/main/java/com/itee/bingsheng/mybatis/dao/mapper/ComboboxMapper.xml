@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.itee.bingsheng.mybatis.dao.ComboboxDao">
+
+
+    <select id="getLoginLogList" parameterType="Object" resultType="java.util.HashMap">
+        select l.id,l.last_ip,u.nickname,u.phone,DATE_FORMAT( u.reg_time,'%Y-%m-%d %H:%i:%S')reg_time,DATE_FORMAT( l.create_time,'%Y-%m-%d %H:%i:%S')create_time from login_log l LEFT JOIN users u on l.user_id=u.user_id where 1=1
+        <if test=" phone!= null and phone != ''">
+            and u.phone like concat('%',trim('${phone}'),'%')
+        </if>
+        limit #{page},#{pageSize}
+    </select>
+
+    <select id="getLoginLogCount" parameterType="Object" resultType="java.lang.Integer">
+        select count(1) from login_log l LEFT JOIN users u on l.user_id=u.user_id
+        <if test=" phone!= null and phone != ''">
+            WHERE u.phone like concat('%',trim('${phone}'),'%')
+        </if>
+    </select>
+
+
+
+
+
+    <select id="getSmsLogList" parameterType="Object" resultType="java.util.HashMap">
+        select s.id,s.phone_number,s.verify_code,IF(s.`code`='SMS_101205002','登录验证','注册验证') as `name`, s.return_code, DATE_FORMAT(s.create_time,'%Y-%m-%d %H:%i:%S')create_time from sms_log s where 1=1
+        <if test=" phone_number!= null and phone_number != ''">
+            and s.phone_number like concat('%',trim('${phone_number}'),'%')
+        </if>
+        ORDER BY s.create_time DESC
+        limit #{page},#{pageSize}
+    </select>
+
+    <select id="getSmsLogCount" parameterType="Object" resultType="java.lang.Integer">
+        select count(1) from sms_log WHERE  1=1
+        <if test=" phone_number!= null and phone_number != ''">
+            and phone_number like concat('%',trim('${phone_number}'),'%')
+        </if>
+    </select>
+
+    <!--获取所有combobox-->
+    <select id="getComboxData" parameterType="Object" resultType="java.util.HashMap">
+        SELECT bb.`key`,bb.`value` from (
+        <!--lookUp-->
+        <if test="type=='lookUp'">
+            SELECT tpl.`key`,tpl.`value` FROM tpl_lookup_item tpl
+            WHERE tpl.`status` = 1
+            <if test="name!=null">
+                AND tpl.`name` = #{name}
+            </if>
+        </if>
+        <!--商品分组-->
+        <if test="type=='goodGroup'">
+            SELECT
+            gg.id AS `key`,
+            gg.`name` AS `value`
+            FROM good_group gg
+            WHERE gg.state = 1
+            <if test="id!=null">
+                AND gg.id = #{id}
+            </if>
+            <if test="parentId!=null">
+                AND gg.parent_id = #{parentId}
+            </if>
+        </if>
+        <!--标签-->
+        <if test="type=='attr'">
+            SELECT
+              attr_id AS `key`,
+              attr_name AS `value`
+            FROM attr
+            <where>
+                <if test="attrType!=null">
+                    AND attr_type = #{attrType}
+                </if>
+                <if test="bindUuid!=null">
+                    AND bind_uuid = #{bindUuid}
+                </if>
+            </where>
+        </if>
+        <!--商品品牌-->
+        <if test="type=='goodBrand'">
+            SELECT
+            gb.brand_id AS `key`,
+            gb.brand_name AS `value`
+            FROM good_brand gb
+            WHERE gb.state = 1
+            <if test="groupType!=null">
+                AND gb.group_type = #{groupType}
+            </if>
+        </if>
+        <!--线下服务商-->
+        <if test="type=='suppliers'">
+            SELECT
+            s.id AS `key`,
+            s.`name` AS `value`
+            FROM suppliers s
+            WHERE s.state = 1
+            AND s.is_check = 1
+        </if>
+        <!--商品厂家-->
+        <if test="type=='manufactor'">
+            SELECT
+            s.id AS `key`,
+            s.`name` AS `value`
+            FROM manufactor s
+            WHERE s.state = 1
+            <if test="groupType!=null">
+                AND s.type = #{groupType}
+            </if>
+        </if>
+        <!--专家-->
+        <if test="type=='specialist'">
+            SELECT
+            s.id AS `key`,
+            s.`name` AS `value`
+            FROM specialist s
+            WHERE 1 = 1
+        </if>
+        ) bb
+    </select>
+    <!--获取经纪人combobox-->
+    <select id="boxRecommend" parameterType="Object" resultType="java.util.HashMap">
+        SELECT
+            t.id as value,
+            t.`name` as text
+        from recommend t
+        where t.state=0
+    </select>
+
+</mapper>

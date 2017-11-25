@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.itee.bingsheng.mybatis.dao.SpecialistMapper">
+    <!-- 查询数量-->
+    <select id="pageCount" parameterType="Object" resultType="java.lang.Long">
+        SELECT
+        count(1)
+        from `specialist` t
+        where 1=1
+        <include refid="page_where"/>
+    </select>
+    <sql id="page_where">
+        <trim suffixOverrides=",">
+            <if test="data.name != null and data.name != ''">
+                and t.name like concat('%',trim('${data.name}'),'%')
+            </if>
+            <if test="data.phone != null and data.phone != ''">
+                and t.phone like concat('%',trim('${data.phone}'),'%')
+            </if>
+            <if test="data.state != null and data.state != ''">
+                and t.state = ${data.state}
+            </if>
+        </trim>
+    </sql>
+    <!--查询数据-->
+    <select id="pageList" parameterType="Object" resultType="java.util.HashMap">
+        SELECT
+            t.id,
+            t.head,
+            t.`name`,
+            t.state,
+            t.phone,
+            t.reputation,
+            t.affiliated_hospital,
+            t.shelf,
+            DATE_FORMAT(t.create_time ,'%Y-%m-%d %H:%i:%S') as create_time,
+            u.real_name,
+            (SELECT  r.name from recommend r  where r.id=t.refer) as refer,
+            (SELECT  r.name FROM region r where r.id=t.city) as city
+        from specialist t
+        LEFT JOIN sys_user u on t.sysuser_id=u.id
+        where 1=1
+        <include refid="page_where"/>
+        order by
+        <if test="sort!= null and sort != ''">
+            ${sort[0].field} ${sort[0].dir},
+        </if>
+        t.id desc
+        <if test="page != null and pageSize != null and pageSize != ''">
+            LIMIT ${page},${pageSize}
+        </if>
+    </select>
+    <update id="batchShelf" parameterType="Object">
+        UPDATE `specialist`  SET `shelf`= #{1} WHERE `id` in
+        <foreach collection="param1" index="index" item="item" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </update>
+</mapper>

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.itee.bingsheng.mybatis.dao.CommonMapper">
+    <!-- 公共软删除方法-->
+    <update id="softDelete" parameterType="Object">
+        UPDATE ${tn}  SET `state`= #{state} WHERE `id` = #{id}
+    </update>
+    <!-- 公共批量上下架方法-->
+    <update id="batchShelf" parameterType="Object">
+        UPDATE ${tn}  SET `shelf`= #{shelf} WHERE `id` in
+        <foreach collection="ids" index="index" item="item" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </update>
+</mapper>

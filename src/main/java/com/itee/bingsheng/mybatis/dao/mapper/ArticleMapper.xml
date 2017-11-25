@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.itee.bingsheng.mybatis.dao.ArticleDao" >
+
+	<resultMap id="article" type="com.itee.bingsheng.entity.Article">
+		<result column="id" property="id" />
+		<result column="title" property="title" />
+		<result column="remark" property="remark" />
+		<result column="state" property="state" />
+		<result column="type" property="type" />
+		<result column="create_time" property="createTime"/>
+		<result column="link" property="link" />
+		<result column="img" property="img" />
+		<result column="creator" property="creator"/>
+        <result column="click" property="click"/>
+		<result column="author" property="author"/>
+		<result column="author_email" property="authorEmail"/>
+		<result column="publish_time" property="publishTime"/>
+	</resultMap>
+
+	<select id="queryAllArticle" parameterType="Object" resultType="java.util.HashMap">
+		select c.id,c.title,c.remark,c.author_email,c.keywords,c.`type`,if(c.state=1,'上架','下架')as state ,DATE_FORMAT(c.create_time,'%Y-%m-%d %H:%i:%S') createTime,DATE_FORMAT(c.publish_time,'%Y-%m-%d %H:%i:%S') publishTime, c.click,c.img,c.link,c.author ,u.real_name as creator from article c LEFT JOIN sys_user u on c.creator=u.id WHERE  1=1
+		<if test="state != null ">
+			and	c.`state`=#{state}
+		</if>
+		<if test="publishTime != null ">
+			and	c.`publish_time` &gt; now()
+		</if>
+		ORDER by click desc
+		limit  #{page},#{pageSize}
+	</select>
+
+	<insert id="saveArticle" parameterType="java.util.HashMap"  useGeneratedKeys="true" keyColumn="id" keyProperty="id">
+		INSERT INTO `article` (`title`,`remark`,`author`,`author_email`,`keywords`,`type`,`state`,`create_time`,`link`,`publish_time`, `img`,`creator`) VALUES (#{title},#{remark},#{author},#{authorEmail}, #{keywords},#{type}, 1, now(),#{link},#{publishTime},#{img},#{creator})
+	</insert>
+
+
+	<update id="updateArticle" parameterType="Object" >
+		update article
+		<set>
+			<if test="type != null ">
+				`type`=#{type},
+			</if>
+			<if test="remark != null ">
+				`remark`=#{remark},
+			</if>
+			<if test="state != null ">
+				`state`=#{state},
+			</if>
+			<if test="author != null ">
+				`author`=#{author},
+			</if>
+			<if test="link != null  ">
+				`link`=#{link},
+			</if>
+            <if test="authorEmail != null  ">
+                `author_email`=#{authorEmail},
+            </if>
+			<if test="description != null  ">
+				`description`=#{description},
+			</if>
+			<if test="img != null  ">
+				`img`=#{img},
+			</if>
+			<if test="title != null  ">
+				`title`=#{title},
+			</if>
+			<if test="publishTime != null  ">
+				`publish_time`=#{publishTime},
+			</if>
+			<if test="keywords != null  ">
+				`keywords`=#{keywords}
+			</if>
+		</set>
+		where id=#{id}
+	</update>
+
+
+	<select id="getAllCount1" parameterType="Object" resultType="java.lang.Integer">
+		select count(1) from article where 1=1
+		<if test="state != null ">
+			and	`state`=#{state}
+		</if>
+	</select>
+
+	<select id="getArticle" parameterType="java.lang.Integer" resultMap="article">
+		select * from article where id=#{id}
+	</select>
+
+
+	<delete id="deleteArtic" parameterType="java.lang.Integer">
+		DELETE FROM article where id=#{id}
+	</delete>
+</mapper>

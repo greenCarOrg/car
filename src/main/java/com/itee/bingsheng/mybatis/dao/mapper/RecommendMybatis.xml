@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.itee.bingsheng.mybatis.dao.RecommendDao">
+
+
+    <resultMap id="recommend" type="com.itee.bingsheng.entity.Recommend" >
+        <result column="id" property="id" javaType="java.lang.Integer"/>
+        <result column="name" property="name" javaType="java.lang.String"/>
+        <result column="id_card" property="idCard" javaType="java.lang.String"/>
+        <result column="sex" property="sex" javaType="java.lang.Integer"/>
+        <result column="phone" property="phone" javaType="java.lang.String"/>
+        <result column="create_time" property="createTime" javaType="java.util.Date"/>
+        <result column="head" property="head" javaType="java.lang.String"/>
+        <result column="state" property="state" javaType="java.lang.Integer"/>
+        <result column="creator" property="creator" javaType="java.lang.String"/>
+        <result column="address" property="address" javaType="java.lang.String"/>
+        <result column="remark" property="remark" javaType="java.lang.String"/>
+    </resultMap>
+
+    <select id="queryAllData"  parameterType="Object" resultType="java.util.HashMap">
+        SELECT r.id,r.name,r.address,r.sex,DATE_FORMAT(r.create_time,'%Y-%m-%d %H:%i:%S') create_time, r.phone,r.head,	r.state,r.id_card,r.remark,u.real_name FROM	recommend r LEFT JOIN sys_user u on u.id=r.createor where 1=1
+        <if test="phone != null and phone!='' ">
+            and r.phone like CONCAT('%','${phone}','%' )
+        </if>
+        <if test="name != null and name!='' ">
+            and r.name like CONCAT('%','${name}','%' )
+        </if>
+        limit #{page},#{pageSize}
+    </select>
+
+
+    <select id="getAllDataCount" parameterType="Object" resultType="java.lang.Integer">
+        select count(1) from recommend where 1=1
+        <if test="phone != null and phone!='' ">
+            and phone like CONCAT('%','${phone}','%' )
+        </if>
+        <if test="name != null and name!='' ">
+            and name like CONCAT('%','${name}','%' )
+        </if>
+    </select>
+
+
+
+    <insert id="saveData" parameterType="java.util.HashMap"  useGeneratedKeys="true" keyColumn="id" keyProperty="id">
+        INSERT INTO `recommend` (`name`, `sex`, `create_time`, `phone`, `head`, `state`, `id_card`, `createor`, `remark`,`address`)
+        VALUES (#{name},#{sex},now(),#{phone}, #{head}, #{state},#{idCard},#{createor},#{remark},#{address});
+    </insert>
+
+
+    <update id="updateData" parameterType="Object">
+        update `recommend`
+        <set>
+            <if test="name != null ">
+                `name`=#{name},
+            </if>
+            <if test="phone != null ">
+                `phone`=#{phone},
+            </if>
+            <if test="state != null ">
+                `state`=#{state},
+            </if>
+            <if test="remark!=null">
+                remark= #{remark},
+            </if>
+            <if test="address!=null">
+                address=#{address}
+            </if>
+        </set>
+        where id=#{id}
+    </update>
+
+
+
+    <select id="getDateById"  parameterType="Object" resultMap="recommend">
+        SELECT * FROM	recommend where  id=#{id}
+    </select>
+</mapper>

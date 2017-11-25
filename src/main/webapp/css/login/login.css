@@ -1,0 +1,78 @@
+body{background: #f2f2f2;padding: 54px 24px;}
+#login_form{position: relative;}
+.login_icon{width: 60px;height:70px;display: inline-block;float: left;text-align: center;}
+.login_icon img{display: block;margin: 0 auto;padding-bottom:5px;margin-bottom: 2px;}
+.login_icon  img:hover{border: 1px solid deepskyblue;}
+.h40{/*height: 100px;*/width: 295px;}
+.f12{font-size: 12px;color:#cecece;}
+.mt10{margin:10px 0;}
+.mt40{margin:40px 0  10px;}
+.md-card .md-card-content.large-padding {
+    padding: 24px 26px;
+}
+.md-card{float: left;margin-left: 53px;margin-top: 76px;width: 295px;}
+.md-card-r{float: left;width: 466px;text-align: center;}
+.login_page_wrapper {
+    width:900px;
+}
+.coy{font-size: 12px;color:#999999;text-align: center;}
+.jigou{width: 260px;height: 140px;overflow: auto;margin: 0 auto;}
+.jigou:after{clear: both;}
+.f13{font-size: 13px;color: #cecece;padding-bottom: 10px;padding-top:10px;}
+#institution{position: absolute;bottom:30%;left:5px;background:#fff;z-index: 99;width:280px;text-align: center;height: auto;display: none;}
+#institution .mt43{margin-top:5px;width:260px;margin-bottom: 23px;}
+.load{width: 260px;height: auto;margin: 0 auto;}
+.uk-margin-top:after {
+    content: "";
+    display: block;
+    clear: both;
+    height: 0;
+    overflow: hidden;
+    visibility: hidden;
+    zoom: 1;
+}
+
+.md-card {
+    background:none;
+    position: relative;
+    box-shadow: 0 1px 3px rgba(0,0,0,.12),0 1px 2px rgba(0,0,0,.24);
+    border: none;
+}
+.md-card .md-card-content.large-padding {
+    padding: 24px 26px 0 26px;
+    background:#fff;
+}
+
+.md-card{float: left;margin-left: 53px; margin-top: 23px;width: 295px;}
+
+
+.weixin-ground{
+    height:135px;background:#fff;margin-top:5px;
+    padding:0 22px;
+}
+
+.cus-title{
+    font-size: 12px;
+    color: #666;
+    padding: 10px 0 10px 0;
+    margin: 0;
+
+}
+.weixin-ground .xl-pic{float:left;width:70px;height:70px;text-align:center;color:#999;font-size:12px;}
+.xl-pic  img{
+    width:70px;
+    height:70px;
+    margin-bottom:5px;
+}
+.weixin-ground  .m5{margin: 0 19px;}
+.login_icon {
+    width: 70px;
+    height: 70px;
+    display: inline-block;
+    float: left;
+    text-align: center;
+    font-size: 12px;
+    color: #999;
+}
+.f12{font-size:12px;color:#666666;}
+

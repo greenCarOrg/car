@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.itee.bingsheng.mybatis.dao.GestationMapper">
+    <!-- 查询数量-->
+    <select id="pageCount" parameterType="Object" resultType="java.lang.Long">
+        SELECT
+        count(1)
+        from `gestation` t
+        where 1=1
+        <include refid="page_where"/>
+    </select>
+    <sql id="page_where">
+        <trim suffixOverrides=",">
+            <if test="data.id != null and data.id != ''">
+                and t.id = ${data.id}
+            </if>
+        </trim>
+    </sql>
+    <!--查询数据-->
+    <select id="pageList" parameterType="Object" resultType="java.util.HashMap">
+        SELECT
+            t.id,
+            t.content,
+            t.img
+        from gestation t
+        where 1=1
+        <include refid="page_where"/>
+        order by
+        <if test="sort!= null and sort != ''">
+            ${sort[0].field} ${sort[0].dir},
+        </if>
+          t.id desc
+        <if test="page != null and pageSize != null and pageSize != ''">
+            LIMIT ${page},${pageSize}
+        </if>
+    </select>
+</mapper>

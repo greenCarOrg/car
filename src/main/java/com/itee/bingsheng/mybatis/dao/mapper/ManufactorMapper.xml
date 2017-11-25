@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.itee.bingsheng.mybatis.dao.ManufactorDao" >
+
+	<resultMap id="manfactor" type="com.itee.bingsheng.entity.Manufactor">
+		<result column="id" property="id"/>
+		<result column="name" property="name" />
+		<result column="remark" property="remark" />
+		<result column="contacts" property="contacts" />
+		<result column="phone" property="phone" />
+		<result column="create_time" property="createTime"/>
+		<result column="state" property="state"/>
+		<result column="img" property="img" />
+		<result column="operator" property="operator"/>
+        <result column="license" property="license"/>
+		<result column="address" property="address"/>
+		<result column="id_card" property="idCard"/>
+		<result column="bond" property="bond"/>
+		<result column="customer_phone" property="customerPhone"/>
+	</resultMap>
+
+
+	<select id="queryAllManufactor" parameterType="Object" resultType="java.util.HashMap">
+		select m.id,
+		m.`name`,
+		m.`remark`,
+		m.state,
+		m.contacts,
+		m.phone,
+		DATE_FORMAT(m.create_time,'%Y-%m-%d %H:%i:%S') create_time,
+		m.address,
+		m.license,
+		m.bond,
+		m.customer_phone,
+		m.id_card,
+		su.real_name,
+		m.img from manufactor m LEFT JOIN sys_user su on m.operator=su.id where 1=1
+		<if test="name != null ">
+			and	m.`name` LIKE CONCAT('%','${name}','%')
+		</if>
+		<if test="phone != null ">
+			and	m.`phone` LIKE CONCAT('%','${phone}','%')
+		</if>
+		<if test="contacts != null ">
+			and	m.`contacts` LIKE CONCAT('%','${contacts}','%')
+		</if>
+		<if test="page != null and pageSize!=null">
+			limit  #{page},#{pageSize}
+		</if>
+
+	</select>
+
+	<insert id="saveManufactor" parameterType="java.util.HashMap"  useGeneratedKeys="true" keyColumn="id" keyProperty="id">
+		INSERT INTO `manufactor` (`name`, `phone`, `contacts`, `remark`, `operator`, `img`,`id_card`, `address`, `create_time`, `state`, `bond`,license,`customer_phone`) VALUES (#{name},#{phone},#{contacts},#{remark},#{operator},#{img},#{idCard},#{address}, now(),#{state},#{bond},#{license},#{customerPhone})
+	</insert>
+
+
+	<update id="updateManufactor" parameterType="Object" >
+		update manufactor
+		<set>
+			<if test="name != null ">
+				`name`=#{name},
+			</if>
+			<if test="phone != null ">
+				`phone`=#{phone},
+			</if>
+			<if test="contacts != null ">
+				`contacts`=#{contacts},
+			</if>
+			<if test="remark != null ">
+				`remark`=#{remark},
+			</if>
+			<if test="address != null ">
+				`address`=#{address},
+			</if>
+			<if test="bond != null ">
+				`bond`=#{bond},
+			</if>
+			<if test="img != null ">
+				`img`=#{img},
+			</if>
+			<if test="state != null ">
+				`state`=#{state},
+			</if>
+			<if test="customerPhone != null ">
+				`customer_phone`=#{customerPhone}
+			</if>
+		</set>
+		where id=#{id}
+	</update>
+
+
+	<select id="getAllCount" parameterType="Object" resultType="java.lang.Integer">
+		select count(1) from manufactor where 1=1
+		<if test="name != null ">
+			and	`name` LIKE CONCAT('%','${name}','%')
+		</if>
+		<if test="phone != null ">
+			and	`phone` LIKE CONCAT('%','${phone}','%')
+		</if>
+		<if test="contacts != null ">
+			and	`contacts` LIKE CONCAT('%','${contacts}','%')
+		</if>
+	</select>
+
+
+
+	<select id="getManfactorById" parameterType="java.lang.Integer" resultMap="manfactor">
+		select * from manufactor where id=#{id}
+	</select>
+
+
+	<select id="queryValidManufactor" parameterType="java.lang.Integer" resultType="java.util.HashMap">
+		select id, `name` from manufactor where `state`=1
+	</select>
+</mapper>

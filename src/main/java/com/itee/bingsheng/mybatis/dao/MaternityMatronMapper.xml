@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.itee.bingsheng.mybatis.dao.MaternityMatronMapper">
+    <!-- 查询数量-->
+    <select id="pageCount" parameterType="Object" resultType="java.lang.Long">
+        SELECT
+        count(1)
+        from `maternity_matron` t
+        where 1=1
+        <include refid="page_where"/>
+    </select>
+    <sql id="page_where">
+        <trim suffixOverrides=",">
+            <if test="data.name != null and data.name != ''">
+                and t.name like concat('%',trim('${data.name}'),'%')
+            </if>
+            <if test="data.phone != null and data.phone != ''">
+                and t.phone like concat('%',trim('${data.phone}'),'%')
+            </if>
+            <if test="data.type != null and data.type != ''">
+                and t.type = ${data.type}
+            </if>
+            <if test="data.state != null and data.state != ''">
+                and t.state = ${data.state}
+            </if>
+            <if test="data.shelf != null and data.shelf != ''">
+                and t.shelf = ${data.shelf}
+            </if>
+        </trim>
+    </sql>
+    <!--查询数据-->
+    <select id="pageList" parameterType="Object" resultType="java.util.HashMap">
+        SELECT
+            t.id,
+            t.head,
+            t.`name`,
+            t.type,
+            t.state,
+            t.phone,
+            t.reputation,
+            t.price,
+            t.shelf,
+            t.age,
+            case when t.`level`=1 then '一星月嫂'
+            when t.`level`=2 then '二星月嫂'
+            when t.`level`=3 then '三星月嫂'
+            when t.`level`=4 then '四星月嫂'
+            when t.`level`=5 then '五星月嫂'
+            when t.`level`=6 then '特级月嫂'
+            else '--'
+            end as `level`,
+            DATE_FORMAT(t.create_time ,'%Y-%m-%d %H:%i:%S') as create_time,
+            u.real_name,
+            (SELECT  r.name from recommend r  where r.id=t.refer) as refer,
+            (SELECT  r.name FROM region r where r.id=t.city) as city
+        from maternity_matron t
+        LEFT JOIN sys_user u on t.sysuser_id=u.id
+        where 1=1
+        <include refid="page_where"/>
+        order by
+        <if test="sort!= null and sort != ''">
+            ${sort[0].field} ${sort[0].dir},
+        </if>
+          t.id desc
+        <if test="page != null and pageSize != null and pageSize != ''">
+            LIMIT ${page},${pageSize}
+        </if>
+    </select>
+    <!--获取服务-->
+    <select id="getMaternityService" parameterType="int" resultType="java.util.HashMap">
+        SELECT
+            s.id,
+            s.`name`,
+            ifnull((SELECT ms.mm_id from mm_service ms where ms.service_id=s.id and ms.mm_id=#{0} group by MS.mm_id),0) as mm_id
+        from service s
+        where s.state=1
+          and s.type=#{1}
+    </select>
+    <update id="batchShelf" parameterType="Object">
+        UPDATE `maternity_matron`  SET `shelf`= #{1} WHERE `id` in
+        <foreach collection="param1" index="index" item="item" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </update>
+</mapper>
