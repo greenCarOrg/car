@@ -82,7 +82,7 @@ public class SysRoleService implements ISysRoleService {
     public List<SysRole> queryPageAllSysRole(int pageNo,int pageSize){
         List<SysRole> list = null;
         try{
-            Map<String,Object> params = new HashMap<>();
+            Map<String,Object> params = new HashMap<String, Object>();
             params.put("pageSize", pageSize);
             params.put("page", (pageNo - 1) * pageSize);
             list = sysRoleDao.queryPageAllSysRole(params);
@@ -108,7 +108,7 @@ public class SysRoleService implements ISysRoleService {
 
     @Override
     public void updateSysRoleStatus(int id,boolean enabled,HttpServletRequest request){
-        Map<String,Object> params = new HashMap<>();
+        Map<String,Object> params = new HashMap<String, Object>();
         params.put("id", id);
         params.put("status", enabled ? 1 : 0);
         params.put("updateTime",new Date());
@@ -128,7 +128,7 @@ public class SysRoleService implements ISysRoleService {
     public List<SysRoleFunc> querySysRoleFuncByRoleId(int roleId){
         List<SysRoleFunc> sysRoleFunc = null;
         try{
-            Map<String,Object> params = new HashMap<>();
+            Map<String,Object> params = new HashMap<String, Object>();
             params.put("roleId",roleId);
             sysRoleFunc = sysFunctionMybatisDao.querySysRoleFuncByRoleId(params);
         }catch (Exception e){
@@ -146,7 +146,7 @@ public class SysRoleService implements ISysRoleService {
             if( null != id && !id.equals("")) {
                 int roleId = Integer.valueOf(id);
 
-                Map<String,Object> params = new HashMap<>();
+                Map<String,Object> params = new HashMap<String, Object>();
                 params.put("roleId",roleId);
                 sysFunctionMybatisDao.deleteSysRoleFunc(params);
 

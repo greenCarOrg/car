@@ -140,7 +140,7 @@ public class ErpOrderController implements ServletContextAware {
     @RequestMapping(value = "/viewOrderInfo", method = RequestMethod.POST)
     @ResponseBody
     public ExecuteResult unifiedOrder(HttpServletRequest request, @RequestBody OrderBean orderBean) {
-        ExecuteResult result = new ExecuteResult<>();
+        ExecuteResult result = new ExecuteResult();
         Map<String, Object> data = new HashedMap();
         try {
             orderBean.setSpbillCreateIp(IPUtils.getIpAddr(request));

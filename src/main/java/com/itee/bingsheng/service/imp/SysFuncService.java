@@ -47,7 +47,7 @@ public class SysFuncService implements ISysFuncService {
     public List<SysFunction> querySysFunctionList(int parentId, String funcName, int pageSize, int page) {
         List<SysFunction> list = null;
         try {
-            Map<String, Object> params = new HashMap<>();
+            Map<String, Object> params = new HashMap();
             params.put("parentId", parentId);
             params.put("funcName", funcName);
             params.put("pageSize", pageSize);
@@ -69,7 +69,7 @@ public class SysFuncService implements ISysFuncService {
     public int querySysFunctionCount(int parentId, String funcName) {
         int count = 0;
         try {
-            Map<String, Object> params = new HashMap<>();
+            Map<String, Object> params = new HashMap<String, Object>();
             params.put("parentId", parentId);
             params.put("funcName", funcName);
             count = sysFunctionMybatisDao.querySysFunctionCount(params);
@@ -81,7 +81,7 @@ public class SysFuncService implements ISysFuncService {
 
     @Override
     public void updateSysFuncStatus(int id, boolean enabled, HttpServletRequest request) {
-        Map<String, Object> params = new HashMap<>();
+        Map<String, Object> params = new HashMap<String, Object>();
         params.put("id", id);
         params.put("status", enabled ? 1 : 0);
         params.put("updateTime", new Date());
@@ -101,7 +101,7 @@ public class SysFuncService implements ISysFuncService {
     public List<SysFunction> querySysFunctionByRoleId(Integer roleId, Integer parentId) {
         List<SysFunction> sysFunctionList = null;
         try {
-            Map<String, Object> params = new HashMap<>();
+            Map<String, Object> params = new HashMap<String, Object>();
             params.put("roleId", roleId);
             params.put("parentId", parentId);
             sysFunctionList = sysFunctionMybatisDao.querySysFunctionByRoleId(params);
@@ -115,7 +115,7 @@ public class SysFuncService implements ISysFuncService {
     public List<SysFunction> querySysFunctionSonList(Integer parentId) {
         List<SysFunction> sysFunctionSonList = null;
         try {
-            Map<String, Object> params = new HashMap<>();
+            Map<String, Object> params = new HashMap<String, Object>();
             params.put("parentId", parentId);
             sysFunctionSonList = sysFunctionMybatisDao.querySysFunctionSonList(params);
         } catch (Exception e) {

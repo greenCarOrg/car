@@ -128,7 +128,7 @@ public class KoclawalletServiceImpl implements KoclawalletService {
      * @throws Exception
      */
     private Map<String, String> saveOrderInfo(NotifyReturnBean returnBean) throws Exception {
-        Map<String, String> resonseMap = new HashMap<>();
+        Map<String, String> resonseMap = new HashMap();
         String returnMsg = "OK";
         String returnCode = ReturnCode.FAIL;
         // 根据返回的商户订单号，获取订单信息

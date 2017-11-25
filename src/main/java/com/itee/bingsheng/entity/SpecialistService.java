@@ -14,7 +14,7 @@ import static javax.persistence.GenerationType.IDENTITY;
 @Entity
 @DynamicUpdate
 @DynamicInsert
-@Table(name = "specialist_service", schema = "motherpoint")
+@Table(name = "specialist_service")
 public class SpecialistService {
 	private Integer id;
 	private String name;

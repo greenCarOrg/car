@@ -115,7 +115,7 @@ public class BaseDaoImpl<T> implements BaseDao<T> {
             CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
             CriteriaQuery criteriaQuery = criteriaBuilder.createQuery(entityClass);
             Root root = criteriaQuery.from(entityClass);
-            List<Predicate> predicates = new ArrayList<>(attributes.length);
+            List<Predicate> predicates = new ArrayList<Predicate>(attributes.length);
             for (SingularAttribute<?, ?> attribute : attributes) {
                 predicates.add(criteriaBuilder.equal(root.get(attribute), PropertyUtils.getProperty(entity, attribute.getName())));
             }

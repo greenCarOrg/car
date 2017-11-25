@@ -68,7 +68,7 @@ public class SysUser implements java.io.Serializable  {
     }
 
 
-    private Map<Object,Object> sysFunc = new HashMap<>();
+    private Map<Object,Object> sysFunc = new HashMap<Object, Object>();
 
 
     public String getStatusStr() {

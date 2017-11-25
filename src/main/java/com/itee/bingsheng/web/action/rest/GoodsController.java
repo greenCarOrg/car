@@ -40,9 +40,9 @@ public class GoodsController extends BaseController {
      */
     @RequestMapping(value = "getGoodByGroup", method = RequestMethod.GET)
     public ExecuteResult<Map<String,Object>> getGoodByGroup(@RequestParam("groupId") int groupId,HttpServletRequest request)throws Exception{
-        ExecuteResult result  = new ExecuteResult<>();
+        ExecuteResult result  = new ExecuteResult();
         try {
-            Map<String,Object> map=new HashMap<>();
+            Map<String,Object> map=new HashMap<String, Object>();
             map.put("cat_id",groupId);
             map.put("is_on_sale",1);
             map.put("data",goodService.queryGoodList(map));
@@ -63,9 +63,9 @@ public class GoodsController extends BaseController {
      */
     @RequestMapping(value = "getGoodByGoodId", method = RequestMethod.GET)
     public ExecuteResult<Map<String,Object>> getGoodByGoodId(@RequestParam("goodId") int goodId,HttpServletRequest request)throws Exception{
-        ExecuteResult result  = new ExecuteResult<>();
+        ExecuteResult result  = new ExecuteResult();
         try {
-            Map<String,Object> map=new HashMap<>();
+            Map<String,Object> map=new HashMap<String, Object>();
             map.put("goods_id",goodId);
 			map.put("state",1);
 			map.put("data",goodService.queryGoodList(map));
@@ -91,9 +91,9 @@ public class GoodsController extends BaseController {
      */
     @RequestMapping(value = "getGoodCommentByGoodId", method = RequestMethod.GET)
     public ExecuteResult<Map<String,Object>> getGoodCommentByGoodId(@RequestParam("goodId") int goodId,@RequestParam("page") int page,@RequestParam("pageSize") int pageSize,HttpServletRequest request)throws Exception{
-        ExecuteResult result  = new ExecuteResult<>();
+        ExecuteResult result  = new ExecuteResult();
         try {
-            Map<String,Object> map=new HashMap<>();
+            Map<String,Object> map=new HashMap<String, Object>();
 			map.put("goods_id",goodId);
 			map.put("page",page);
 			map.put("pageSize",pageSize);
@@ -120,7 +120,7 @@ public class GoodsController extends BaseController {
      */
     @RequestMapping(value = "submitGoodToCart", method = RequestMethod.POST)
     public ExecuteResult<Map<String,Object>> submitGoodToCart(@RequestBody Map<String,Object> param,HttpServletRequest request)throws Exception{
-        ExecuteResult result  = new ExecuteResult<>();
+        ExecuteResult result  = new ExecuteResult();
         try {
             HttpSession session = request.getSession();
             String uuid=param.get("uuid").toString();
@@ -154,7 +154,7 @@ public class GoodsController extends BaseController {
      */
     @RequestMapping(value = "submitCollection", method = RequestMethod.POST)
     public ExecuteResult<Map<String,Object>> submitCollection(@RequestBody Map<String,Object> param,HttpServletRequest request)throws Exception{
-        ExecuteResult result  = new ExecuteResult<>();
+        ExecuteResult result  = new ExecuteResult();
         try {
             HttpSession session = request.getSession();
             String uuid=param.get("uuid").toString();
@@ -187,7 +187,7 @@ public class GoodsController extends BaseController {
      */
     @RequestMapping(value = "cancelCollection", method = RequestMethod.POST)
     public ExecuteResult<Map<String,Object>> cancelCollection(@RequestBody Map<String,Object> param,HttpServletRequest request)throws Exception {
-        ExecuteResult result  = new ExecuteResult<>();
+        ExecuteResult result  = new ExecuteResult();
         try {
             HttpSession session = request.getSession();
             String uuid=param.get("uuid").toString();
@@ -227,7 +227,7 @@ public class GoodsController extends BaseController {
     @RequestMapping(value = "submitComment", method = RequestMethod.POST)
     @ResponseBody
     public ExecuteResult submitComment(@RequestBody Map<String,Object> param, HttpServletRequest request)throws Exception {
-        ExecuteResult result  = new ExecuteResult<>();
+        ExecuteResult result  = new ExecuteResult();
         try {
             HttpSession session = request.getSession();
             String uuid=param.get("uuid").toString();
@@ -237,7 +237,7 @@ public class GoodsController extends BaseController {
                 result.setMessage("超时请重新登录");
             }else {
                 param.put("userId",user.getUserId());
-                List<Map<String,Object>> list=new ArrayList<>();
+                List<Map<String,Object>> list=new ArrayList<Map<String, Object>>();
                 commentService.saveComment(param);
                 result.setResult(list);
                 result.setResultCode(ResultCode.SUCCESS);

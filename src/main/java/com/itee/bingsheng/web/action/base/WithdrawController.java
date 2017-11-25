@@ -36,7 +36,7 @@ public class WithdrawController extends BaseController{
     public MybatisPage<Map<String,Object>> withdrawList(@RequestBody PageSpecification<Object> pageRequest, ModelMap modelMap)throws Exception {
         MybatisPage<Map<String,Object>> pages = new MybatisPage<Map<String,Object>>();
         try{
-            Map<String, Object> param = new HashMap<>();
+            Map<String, Object> param = new HashMap<String, Object>();
             param.put("pageSize", pageRequest.getPageSize());
             param.put("page", (pageRequest.getPage() - 1) * pageRequest.getPageSize());
             String state=pageRequest.getData().get("state").toString();

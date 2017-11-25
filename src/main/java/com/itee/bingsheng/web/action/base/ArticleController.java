@@ -41,7 +41,7 @@ public class ArticleController extends BaseController{
     public MybatisPage<Map<String,Object>> articlelist(@RequestBody PageSpecification<Article> pageRequest, ModelMap modelMap)throws Exception {
         MybatisPage<Map<String,Object>> pages = new MybatisPage<Map<String,Object>>();
         try{
-            Map<String, Object> param = new HashMap<>();
+            Map<String, Object> param = new HashMap<String, Object>();
             param.put("pageSize", pageRequest.getPageSize());
             param.put("page", (pageRequest.getPage() - 1) * pageRequest.getPageSize());
             String state=pageRequest.getData().get("state").toString();
@@ -71,7 +71,7 @@ public class ArticleController extends BaseController{
     @RequestMapping(value = "enabledState")
     @ResponseBody
     public int enabledState(@RequestParam("id") int id, @RequestParam("state") boolean state)throws Exception {
-        Map<String,Object> map=new HashMap<>();
+        Map<String,Object> map=new HashMap<String, Object>();
         map.put("id",id);
         map.put("state",state);
         return service.updateArticle(map);
@@ -84,7 +84,7 @@ public class ArticleController extends BaseController{
         HttpSession session = request.getSession();
         SysUser SysUser = (SysUser) session.getAttribute(WebConstants.LOGIN_WEB_SESSION);
 
-        Map<String ,Object>map=new HashMap<>();
+        Map<String ,Object>map=new HashMap<String, Object>();
         map.put("remark",article.getRemark());
         map.put("link",article.getLink());
         map.put("type",article.getType());
@@ -113,7 +113,7 @@ public class ArticleController extends BaseController{
 
     @RequestMapping(value = "updateArticle", method = RequestMethod.POST)
     public String updateArticle(@ModelAttribute("article") Article article,HttpServletRequest request)throws Exception {
-        Map<String ,Object>map=new HashMap<>();
+        Map<String ,Object>map=new HashMap<String, Object>();
         map.put("remark",article.getRemark());
         map.put("title",article.getTitle());
         map.put("link",article.getLink());

@@ -231,7 +231,7 @@ public class SpecialistController extends com.itee.bingsheng.web.action.BaseCont
 	 */
 	@RequestMapping(value = "batchShelf", method = RequestMethod.POST)
 	public ResponseEntity<ExecuteResult> batchShelf(@RequestParam("ids[]") Integer [] ids,@RequestParam("shelf") Integer shelf)throws Exception {
-		ExecuteResult result  = new ExecuteResult<>();
+		ExecuteResult result  = new ExecuteResult();
 		try {
 			if (ids!= null&&ids.length>0) {
 				specialistMapper.batchShelf(ids,shelf);
@@ -255,7 +255,7 @@ public class SpecialistController extends com.itee.bingsheng.web.action.BaseCont
 	 */
 	@RequestMapping(value = "checkPhone", method = RequestMethod.GET)
 	public ResponseEntity<ExecuteResult> checkPhone(@RequestParam("phone") String phone)throws Exception {
-		ExecuteResult result  = new ExecuteResult<>();
+		ExecuteResult result  = new ExecuteResult();
 		try {
 			Specialist specialist=specialistDao.findByPhone(phone);
 			if (specialist == null) {

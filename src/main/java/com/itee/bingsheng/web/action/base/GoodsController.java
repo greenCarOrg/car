@@ -58,7 +58,7 @@ public class GoodsController extends BaseController{
      */
     @RequestMapping(value = "good", method = RequestMethod.GET)
     public String good(ModelMap modelMap,HttpServletRequest request) {
-		Map maps = new HashMap<>();
+		Map maps = new HashMap();
 		maps.put("type","lookUp");
 		maps.put("name","IS_ENABLED");
 		modelMap.put("validList",comboboxService.getComboxData(maps));
@@ -101,7 +101,7 @@ public class GoodsController extends BaseController{
 	@RequestMapping(value = "enabledState", method = RequestMethod.GET)
 	@ResponseBody
 	public int enabledState(@RequestParam("id") int id, @RequestParam("isOnSale") int isOnSale)throws Exception {
-		Map<String,Object> map=new HashMap<>();
+		Map<String,Object> map=new HashMap<String, Object>();
 		map.put("goods_id",id);
 		Map<String,Object> goodsMap = goodService.queryGoodInfo(map);
 		Goods goods = goodService.getGoodsByGoodsMap(goodsMap);
@@ -120,7 +120,7 @@ public class GoodsController extends BaseController{
 	@RequestMapping(value = "updateGoodAttr", method = RequestMethod.GET)
 	@ResponseBody
 	public int updateGoodAttr(@RequestParam("attrId") int attrId,@RequestParam("state") int state,HttpServletRequest request)throws Exception {
-		Map<String,Object>map=new HashMap<>();
+		Map<String,Object>map=new HashMap<String, Object>();
 		map.put("attrId",attrId);
 		map.put("state",state==1?0:1);
 
@@ -140,7 +140,7 @@ public class GoodsController extends BaseController{
 	 */
     @RequestMapping(value = "toAddGood", method = RequestMethod.GET)
     public String toAddGood(@ModelAttribute("goods") Goods goods, ModelMap modelMap, HttpServletRequest request)throws Exception {
-        Map maps = new HashMap<>();
+        Map maps = new HashMap();
         maps.put("type","lookUp");
         maps.put("name","IS_ENABLED");
         modelMap.put("enabledList",comboboxService.getComboxData(maps));
@@ -150,7 +150,7 @@ public class GoodsController extends BaseController{
 		maps.put("parentId","0");
 		modelMap.put("goodGroupList",comboboxService.getComboxData(maps));
 		// 商品扩展分组
-		modelMap.put("extendGroupList",new ArrayList<>());
+		modelMap.put("extendGroupList",new ArrayList());
 		//供货商
 		maps.clear();
 		maps.put("type","manufactor");
@@ -169,7 +169,7 @@ public class GoodsController extends BaseController{
 	@RequestMapping(value = "getExtendCat", method = RequestMethod.GET)
 	@ResponseBody
 	public Object getExtendCat(@RequestParam("parentId")int parentId,HttpServletRequest request)throws Exception {
-		Map<String ,Object> param=new HashMap<>();
+		Map<String ,Object> param=new HashMap<String, Object>();
 		param.put("groupId",parentId);
 		List<Map<String ,Object>> list=goodGroupService.queryAllGroup(param);
 		return list;
@@ -299,14 +299,14 @@ public class GoodsController extends BaseController{
 	 */
     @RequestMapping(value = "toEditGood", method = RequestMethod.GET)
     private String toEditGood(@RequestParam("id") int id,ModelMap modelMap)throws Exception {
-    	Map<String,Object> params = new HashMap<>();
+    	Map<String,Object> params = new HashMap<String, Object>();
 		params.put("goods_id",id);
 		Goods goods=null;
 		List<Goods> goodsList=goodDao.getGoodsList(params);
 		if (goodsList!= null&&goodsList.size()>0) {
 			goods=goodsList.get(0);
 			modelMap.put("goods", goods);
-			Map maps = new HashMap<>();
+			Map maps = new HashMap();
 			maps.put("type","lookUp");
 			maps.put("name","IS_ENABLED");
 			modelMap.put("enabledList",comboboxService.getComboxData(maps));
@@ -328,7 +328,7 @@ public class GoodsController extends BaseController{
 			maps.put("type","manufactor");
 			modelMap.put("suppliers",comboboxService.getComboxData(maps));
 			// 标签list
-			Map<String,Object> maps1 = new HashMap<>();
+			Map<String,Object> maps1 = new HashMap<String, Object>();
 			if(goods.getExtendCatId()!=null){
 				maps1.put("bind_uuid",goods.getCatId()+"_"+goods.getExtendCatId());
 			}else {
