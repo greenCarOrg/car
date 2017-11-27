@@ -16,7 +16,7 @@
     </script>
 </head>
 <body class="sidebar_main_open sidebar_main_swipe" id="bodyId">
-<h3 class="heading_b uk-margin-bottom">月嫂管理</h3>
+<h3 class="heading_b uk-margin-bottom">司机管理</h3>
 <div class="uk-grid" data-uk-grid-margin>
     <div class="uk-width-1-1">
         <div class="md-card">
@@ -24,34 +24,14 @@
                 <div class="uk-grid" data-uk-grid-margin>
                     <div class="uk-width-large-1-6">
                         <div class="uk-input-group">
-                            <label >月嫂名字</label>
+                            <label >司机名字</label>
                             <input class="md-input" type="text" id="name" value="${name}"/>
                         </div>
                     </div>
                     <div class="uk-width-large-1-6">
                         <div class="uk-input-group">
-                            <label >月嫂电话</label>
+                            <label >司机电话</label>
                             <input class="md-input" type="text" id="phone" value="${phone}"/>
-                        </div>
-                    </div>
-                    <div class="uk-width-large-1-6">
-                        <div class="uk-input-group">
-                            <label style="display: inherit;">类型</label>
-                            <select name="type" id="type">
-                                <option value="">全部</option>
-                                <option value="0" <c:if test="${type==0}">selected</c:if>>月嫂</option>
-                                <option value="1" <c:if test="${type==1}">selected</c:if>>育婴师</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="uk-width-large-1-6">
-                        <div class="uk-input-group">
-                            <label style="display: inherit;">状态</label>
-                            <select name="state" id="state">
-                                <option value="">全部</option>
-                                <option value="0" <c:if test="${state==0}">selected</c:if>>未在职</option>
-                                <option value="1" <c:if test="${state==1}">selected</c:if>>已签约</option>
-                            </select>
                         </div>
                     </div>
                     <div class="uk-width-large-1-6">
@@ -74,7 +54,6 @@
                             <label for="checkbox_all"  class="inline-label inline-label-top">全选</label>
                     </span>
                     <a style="float: right;margin-left: 5px;" class="md-btn md-btn-primary" href="toEdit.do">添加月嫂</a>
-                    <%--<a style="float: right;margin-left: 5px;" class="md-btn md-btn-primary" href="javascript:addService()">添加服务</a>--%>
                     <a style="float: right;margin-left: 5px;" class="md-btn md-btn-primary" href="javascript:batchShelf(0)">批量下架</a>
                     <a style="float: right;margin-left: 5px;" class="md-btn md-btn-primary" href="javascript:batchShelf(1)">批量上架</a>
                 </div>
@@ -98,17 +77,16 @@
                                     <kendo:grid-column-template>
                                         <script>
                                             function template(options) {
-                                                var html="<img style='height: 100px;' src="+getQNUrl()+options.head+">";
+                                                var html="<img style='height: 100px;' src="+options.image_url+">";
                                                 return html;
                                             }
                                         </script>
                                     </kendo:grid-column-template>
                                 </kendo:grid-column>
-                                <kendo:grid-column title="月嫂名字" field="name" width="7%" filterable="false"/>
+                                <kendo:grid-column title="司机名字" field="name" width="7%" filterable="false"/>
                                 <kendo:grid-column title="电话" field="phone" width="8%" filterable="false"/>
                                 <kendo:grid-column title="类型" field="type" width="5%" filterable="false" template="#= type==0? '月嫂' : '育婴师' #"/>
-                                <kendo:grid-column title="月嫂等级" field="level" width="7%" filterable="false"/>
-                                <kendo:grid-column title="口碑" field="reputation" width="5%" filterable="false"/>
+                                <kendo:grid-column title="口碑" field="star_num" width="5%" filterable="false"/>
                                 <kendo:grid-column title="服务价格" field="price" width="5%" filterable="false"/>
                                 <kendo:grid-column title="年龄" field="age" width="5%" filterable="false"/>
                                 <kendo:grid-column title="创建人" field="real_name" width="7%" filterable="false"/>
@@ -217,7 +195,7 @@
         if (dataItem!=null) {
             $("#mmId").val(dataItem.id);
             var role=dataItem.type==0?"月嫂":"育婴师";
-            $.post("../maternity/getMaternityService.do",{id:dataItem.id,type:dataItem.type},
+            $.post("../driver/getMaternityService.do",{id:dataItem.id,type:dataItem.type},
                 function(msg){
                     var resultCode=msg.resultCode;
                     if(resultCode == 'SUCCESS'){
@@ -255,7 +233,7 @@
         if (serviceIds == null||serviceIds.length==0) {
             UIkit.notify({message: '请勾选服务!', status: 'warning', timeout: 1000, pos: 'top-center'});
         }else{
-            $.post("../maternity/addService.do",{mmId:$("#mmId").val(),serviceIds:serviceIds},
+            $.post("../driver/addService.do",{mmId:$("#mmId").val(),serviceIds:serviceIds},
                 function(msg){
                     var resultCode=msg.resultCode;
                     if(resultCode == 'SUCCESS'){

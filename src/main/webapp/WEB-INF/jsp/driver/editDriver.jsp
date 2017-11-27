@@ -180,7 +180,7 @@
                 $("#phone").val("");
                 return;
             }else{
-                $.get("../maternity/checkPhone.do?phone="+phone,null,
+                $.get("../driver/checkPhone.do?phone="+phone,null,
                     function(msg){
                         var resultCode=msg.resultCode;
                         if(resultCode == 'FAIL'){

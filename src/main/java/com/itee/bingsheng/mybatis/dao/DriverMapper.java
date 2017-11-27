@@ -8,17 +8,17 @@ import java.util.Map;
 /**
  * Created by abc on 2016/12/22.
  */
-public interface MaternityMatronMapper extends BaseMapper{
+public interface DriverMapper extends BaseMapper{
 	/***获取服务
 	 * @param id
 	 * @param type
 	 * @return
 	 * @throws Exception
 	 */
-	List<Map<String,Object>> getMaternityService(Integer id,Integer type)throws Exception;
+	List<Map<String,Object>> getDriverService(Integer id,Integer type)throws Exception;
 
 	/**
-	 * @param ids:月嫂id数组
+	 * @param ids:id数组
 	 * @param shelf：1-上架；0-下架
 	 * @throws Exception
 	 */
